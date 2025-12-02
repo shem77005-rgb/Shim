@@ -1,8 +1,6 @@
-
 // // import 'dart:typed_data';
 // // import 'package:flutter/material.dart';
 // // import 'package:safechild_system/services/installed_apps_service.dart';
-
 
 // // class AppsSearchScreen extends StatefulWidget {
 // //   static const routeName = '/apps_search';
@@ -96,7 +94,7 @@
 // //                                 title: Text(app.appName ?? app.packageName),
 // //                                 subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
 // //                                 onTap: () async {
-                                  
+
 // //                                    await _service.launchApp(app.packageName);
 // //                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('نقرت على ${app.appName ?? app.packageName}')));
 // //                                 },
@@ -252,7 +250,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:safechild_system/services/installed_apps_service.dart';
 
-
 class AppUsageScreen extends StatefulWidget {
   static const routeName = '/app_usage';
   const AppUsageScreen({Key? key}) : super(key: key);
@@ -298,11 +295,12 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
       return;
     }
     setState(() {
-      _filtered = _all.where((a) {
-        final name = (a.appName ?? '').toLowerCase();
-        final pkg = a.packageName.toLowerCase();
-        return name.contains(_query) || pkg.contains(_query);
-      }).toList();
+      _filtered =
+          _all.where((a) {
+            final name = (a.appName ?? '').toLowerCase();
+            final pkg = a.packageName.toLowerCase();
+            return name.contains(_query) || pkg.contains(_query);
+          }).toList();
     });
   }
 
@@ -322,7 +320,11 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   /// زر الخروج: يعيد المستخدم إلى شاشة إدارة السياسات
   void _exitToPolicySettings() {
     // نزيل كل الشاشات السابقة ونضع شاشة إدارة السياسات في القمة
-    Navigator.pushNamedAndRemoveUntil(context, '/policy_settings', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/policy_settings',
+      (route) => false,
+    );
   }
 
   @override
@@ -340,7 +342,13 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
           actions: [
             TextButton(
               onPressed: _exitToPolicySettings,
-              child: const Text('خروج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'خروج',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -354,35 +362,54 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
                   decoration: InputDecoration(
                     hintText: 'ابحث باسم التطبيق أو اسم الحزمة',
                     prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     isDense: true,
                   ),
                 ),
                 const SizedBox(height: 10),
                 if (_loading)
-                  const Expanded(child: Center(child: CircularProgressIndicator()))
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
                 else
                   Expanded(
-                    child: _filtered.isEmpty
-                        ? Center(child: Text(_all.isEmpty ? 'لم تُكتشف تطبيقات' : 'لا توجد نتائج عن \"$_query\"'))
-                        : ListView.separated(
-                            itemCount: _filtered.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
-                            itemBuilder: (context, i) {
-                              final app = _filtered[i];
-                              return ListTile(
-                                leading: _buildIcon(app),
-                                title: Text(app.appName ?? app.packageName),
-                                subtitle: Text(app.packageName, style: const TextStyle(fontSize: 12)),
-                                onTap: () {
-                                  // نعرض رسالة مؤقتة عند الضغط — لاحقًا يمكنك فتح شاشة إعداد الحد
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('نقرت على ${app.appName ?? app.packageName}')),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                    child:
+                        _filtered.isEmpty
+                            ? Center(
+                              child: Text(
+                                _all.isEmpty
+                                    ? 'لم تُكتشف تطبيقات'
+                                    : 'لا توجد نتائج عن \"$_query\"',
+                              ),
+                            )
+                            : ListView.separated(
+                              itemCount: _filtered.length,
+                              separatorBuilder:
+                                  (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, i) {
+                                final app = _filtered[i];
+                                return ListTile(
+                                  leading: _buildIcon(app),
+                                  title: Text(app.appName ?? app.packageName),
+                                  subtitle: Text(
+                                    app.packageName,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  onTap: () {
+                                    // نعرض رسالة مؤقتة عند الضغط — لاحقًا يمكنك فتح شاشة إعداد الحد
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'نقرت على ${app.appName ?? app.packageName}',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
                   ),
               ],
             ),
@@ -392,4 +419,3 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
     );
   }
 }
-

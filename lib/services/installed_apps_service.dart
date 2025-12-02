@@ -46,7 +46,6 @@
 //       final List<InstalledAppInfo> out = [];
 //       if (raw == null) return out;
 
-
 //       Iterable items;
 //       if (raw is Iterable) {
 //         items = raw;
@@ -126,7 +125,7 @@
 
 //       return out;
 //     } catch (e, st) {
-      
+
 //        print('InstalledAppsService error: $e');
 //        print(st);
 //       return [];
@@ -232,19 +231,24 @@ class InstalledAppsService {
           }
 
           if (pkg.isEmpty) continue;
-          out.add(InstalledAppWrapper(
-            packageName: pkg,
-            appName: name,
-            isSystemApp: sys,
-            iconBase64: icon,
-          ));
+          out.add(
+            InstalledAppWrapper(
+              packageName: pkg,
+              appName: name,
+              isSystemApp: sys,
+              iconBase64: icon,
+            ),
+          );
         } catch (_) {
           continue;
         }
       }
 
-      out.sort((a, b) => (a.appName ?? a.packageName).toLowerCase()
-          .compareTo((b.appName ?? b.packageName).toLowerCase()));
+      out.sort(
+        (a, b) => (a.appName ?? a.packageName).toLowerCase().compareTo(
+          (b.appName ?? b.packageName).toLowerCase(),
+        ),
+      );
       return out;
     } catch (e) {
       debugPrint('InstalledAppsService.getInstalledApps error: $e');
@@ -268,4 +272,3 @@ class InstalledAppsService {
     }
   }
 }
-

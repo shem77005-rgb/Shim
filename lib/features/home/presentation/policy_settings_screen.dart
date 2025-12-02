@@ -159,18 +159,14 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                     return;
                   }
 
-              
                   if (item.title == 'مدة استخدام التطبيقات') {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const AppUsageScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const AppUsageScreen()),
                     );
                     return;
                   }
-                  
-                 
+
                   if (item.title == 'قيود الكتابة') {
                     Navigator.push(
                       context,
@@ -180,7 +176,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                     );
                     return;
                   }
-                  
 
                   // افتراضي: رسالة مؤقتة
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -256,8 +251,9 @@ class _RestrictionTileState extends State<_RestrictionTile> {
                   height: 26,
                   fit: BoxFit.contain,
                   // لو الصورة ناقصة ما يخرب التصميم
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.image_not_supported_outlined),
+                  errorBuilder:
+                      (_, __, ___) =>
+                          const Icon(Icons.image_not_supported_outlined),
                 ),
               ),
               title: Text(
@@ -280,7 +276,10 @@ class _RestrictionTileState extends State<_RestrictionTile> {
                           : Icons.info_outline_rounded,
                       color: navy,
                     ),
-                    onPressed: () => setState(() => widget.item.showHelp = !widget.item.showHelp),
+                    onPressed:
+                        () => setState(
+                          () => widget.item.showHelp = !widget.item.showHelp,
+                        ),
                   ),
                   IconButton(
                     tooltip: 'فتح',
@@ -295,7 +294,9 @@ class _RestrictionTileState extends State<_RestrictionTile> {
             AnimatedCrossFade(
               duration: const Duration(milliseconds: 200),
               crossFadeState:
-                  widget.item.showHelp ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  widget.item.showHelp
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
               firstChild: const SizedBox.shrink(),
               secondChild: Container(
                 width: double.infinity,

@@ -1,7 +1,5 @@
-
 // import 'package:flutter/material.dart';
 // import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
-
 
 // void main() {
 //   WidgetsFlutterBinding.ensureInitialized();
@@ -52,9 +50,7 @@ class MyApp extends StatelessWidget {
         '/': (_) => const AccountTypeScreen(),
         '/policy_settings': (_) => const PolicySettingsScreen(),
         AppUsageScreen.routeName: (_) => const AppUsageScreen(),
-        
       },
     );
   }
 }
-
