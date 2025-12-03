@@ -38,7 +38,6 @@ class InstalledAppsService {
       final List<InstalledAppWrapper> out = [];
       if (raw == null) return out;
 
-      // raw غالبًا Iterable<AppInfo>
       Iterable items;
       if (raw is Iterable) {
         items = raw;
@@ -49,7 +48,7 @@ class InstalledAppsService {
       for (final dynamic r in items) {
         try {
           if (r == null) continue;
-          // r قد يكون AppInfo (من appcheck) أو Map
+          
           String pkg = '';
           String? name;
           bool? sys;
@@ -64,7 +63,7 @@ class InstalledAppsService {
             if (sysRaw is String) sys = sysRaw.toLowerCase() == 'true';
             icon = (r['icon'] ?? r['iconBase64'])?.toString();
           } else {
-            // dynamic access to AppInfo-like object
+           
             try {
               final dyn = r as dynamic;
               pkg = (dyn.packageName ?? dyn.package ?? '')?.toString() ?? '';
