@@ -5,6 +5,7 @@ import 'package:flutter_accessibility_service/constants.dart';
 import 'package:usage_stats/usage_stats.dart';
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
 import 'usage_service.dart';
+import '../features/apps/presentation/block_screen.dart';
 
 class AppBlockerService {
   static final AppBlockerService _instance = AppBlockerService._internal();
@@ -16,9 +17,11 @@ class AppBlockerService {
 
   /// تهيئة الخدمة
   static void init({
+    required BuildContext context,
     required String targetPackage,
     required Duration used,
     required Duration limit,
+    required String appName,
   }) {
     // إلغاء أي مؤقت سابق لتجنب التكرار
     _timer?.cancel();
@@ -30,7 +33,8 @@ class AppBlockerService {
       bool isFg = await _isAppForeground(targetPackage);
       
       // حماية إضافية: تأكد أن التطبيق ليس تطبيقنا (Supervision App)
-      if (targetPackage == 'com.example.safechild_system') isFg = false; 
+      // (يفترض أن targetPackage هو التطبيق المراد حظره، ولكن لزيادة الأمان)
+      if (targetPackage == 'com.example.safechild_system') isFg = false; // لا تحظر تطبيق الرقابة أبداً
 
       if (!isFg) return; 
 
@@ -50,6 +54,10 @@ class AppBlockerService {
         } catch (e) {
           debugPrint("Accessibility Error: $e");
         }
+
+        // عرض شاشة الحظر (ستظهر إذا كان المستخدم داخل تطبيقنا، أو كطبقة إذا كنا نستخدم Overlay مستقبلاً)
+        // لكن بما أننا أغلقنا التطبيق (globalHome)، فهذا الإجراء ثانوي
+         _blockApp(context, targetPackage, appName);
       }
     });
   }
@@ -95,7 +103,18 @@ class AppBlockerService {
     }
   }
 
+  /// عرض شاشة الحظر
+  static void _blockApp(BuildContext context, String targetPackage, String appName) {
+    _isBlocked = true;
 
+    // منع العودة أو إغلاق الشاشة بسهولة
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: BlockPage(appName: appName),
+      ),
+    ));
+  }
 
   static void dispose() {
     _timer?.cancel();
