@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">
+        الخدمة ضرورية لمراقبة التطبيقات المفتوحة والتحكم بوقت الاستخدام.
+    </string>
+</resources>

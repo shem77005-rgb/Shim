@@ -70,6 +70,7 @@
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <application
         android:label="safechild_system"
@@ -101,7 +102,8 @@
             android:turnScreenOn="true" />
 
         <service
-            android:name=".AppMonitorService"
+            android:name=".AppBlockerService"
+            android:permission="android.permission.FOREGROUND_SERVICE"
             android:exported="false" />
 
         <meta-data

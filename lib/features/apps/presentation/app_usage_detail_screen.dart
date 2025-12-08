@@ -1,8 +1,14 @@
-// app_usage_detail_screen.dart
+
+import '../../../services/app_blocker_service.dart';
+
+
+
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:usage_stats/usage_stats.dart';
+import '../../../../services/native_bridge.dart';
+
 
 class AppUsageDetailScreen extends StatefulWidget {
   final String packageName;
@@ -89,6 +95,16 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
 
       _used = Duration(milliseconds: totalMs);
 
+     
+      AppBlockerService.init(
+        targetPackage: widget.packageName,
+        used: _used,
+        limit: widget.limit,
+      );
+
+      NativeBridge.setLimit(widget.packageName, widget.limit);
+
+      // ----------------------------- حساب بالساعة ----------------------------
       List<int> hourly = List.filled(24, 0);
 
       for (int h = 0; h < 24; h++) {
@@ -118,6 +134,7 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
 
       _hourMs = hourly;
 
+      // ----------------------------- المتبقي والنسبة ----------------------------
       final limitMs = widget.limit.inMilliseconds;
       final usedMs = _used.inMilliseconds;
 
@@ -203,14 +220,13 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(title: Text("استخدام ${widget.title} اليوم")),
-        body:
-            _loading
-                ? const Center(child: CircularProgressIndicator())
-                : !_hasPermission
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : !_hasPermission
                 ? _buildNoPermission()
                 : _error != null
-                ? Center(child: Text(_error!))
-                : _buildContent(),
+                    ? Center(child: Text(_error!))
+                    : _buildContent(),
       ),
     );
   }
@@ -241,14 +257,14 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
             children: [
               widget.iconBytes != null
                   ? ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(
-                      widget.iconBytes!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                    ),
-                  )
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.memory(
+                        widget.iconBytes!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
+                    )
                   : const CircleAvatar(radius: 28, child: Icon(Icons.apps)),
               const SizedBox(width: 12),
               Expanded(
@@ -317,3 +333,6 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
     );
   }
 }
+
+
+
