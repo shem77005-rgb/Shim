@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'parent_login_screen.dart';
+import '../data/services/auth_service.dart';
 
 class ParentSignupScreen extends StatefulWidget {
   const ParentSignupScreen({super.key});
@@ -10,20 +11,30 @@ class ParentSignupScreen extends StatefulWidget {
 }
 
 class _ParentSignupScreenState extends State<ParentSignupScreen> {
-  final _formKey  = GlobalKey<FormState>();
-  final _email    = TextEditingController();
-  final _pass     = TextEditingController();
-  final _confirm  = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _pass = TextEditingController();
 
-  bool _obscure1 = true;
-  bool _obscure2 = true;
+  bool _obscurePass = true;
+  bool _isLoading = false;
+
+  final _authService = AuthService();
 
   @override
   void dispose() {
+    _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _pass.dispose();
-    _confirm.dispose();
     super.dispose();
+  }
+
+  String? _validateName(String? v) {
+    if (v == null || v.trim().isEmpty) return 'أدخل الاسم';
+    if (v.trim().length < 3) return 'الاسم يجب أن يكون 3 أحرف على الأقل';
+    return null;
   }
 
   String? _validateEmail(String? v) {
@@ -33,41 +44,75 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
     return null;
   }
 
+  String? _validatePhone(String? v) {
+    if (v == null || v.trim().isEmpty) return 'أدخل رقم الهاتف';
+    if (v.trim().length < 9) return 'رقم الهاتف غير صحيح';
+    return null;
+  }
+
   String? _validatePass(String? v) {
     if (v == null || v.isEmpty) return 'أدخل كلمة المرور';
-    final strong = v.length >= 8 &&
-        RegExp(r'[A-Z]').hasMatch(v) &&
-        RegExp(r'[a-z]').hasMatch(v) &&
-        RegExp(r'[0-9]').hasMatch(v) &&
-        RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(v);
-    if (!strong) return 'اجعلها قوية (8+ كبير/صغير/رقم/رمز).';
+    if (v.length < 8) return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
     return null;
   }
 
-  String? _validateConfirm(String? v) {
-    if (v == null || v.isEmpty) return 'أعد إدخال كلمة المرور';
-    if (v != _pass.text) return 'كلمتا المرور غير متطابقتين';
-    return null;
-  }
-
-  void _submit() {
+  void _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // TODO: استدعاء API لإنشاء الحساب
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم إنشاء الحساب بنجاح (تجريبي)')),
-    );
-    // رجوع لشاشة الدخول:
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const ParentLoginScreen()),
-      (_) => false,
-    );
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _authService.parentSignup(
+        name: _name.text.trim(),
+        email: _email.text.trim(),
+        phoneNumber: _phone.text.trim(),
+        password: _pass.text,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        // Success - Show success message and navigate to login
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنشاء الحساب بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to login screen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const ParentLoginScreen()),
+          (_) => false,
+        );
+      } else {
+        // Error - Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.error ?? 'فشل إنشاء الحساب'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('حدث خطأ: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const bg   = Color(0xFFE6F4FA);
+    const bg = Color(0xFFE6F4FA);
     const navy = Color(0xFF0A2E66);
 
     return Scaffold(
@@ -86,9 +131,32 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'إنشاء حساب وليّ الأمر',
-                    style: TextStyle(color: navy, fontSize: 20, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: navy,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 24),
+
+                  // الاسم
+                  TextFormField(
+                    controller: _name,
+                    keyboardType: TextInputType.name,
+                    decoration: InputDecoration(
+                      labelText: 'الاسم الكامل',
+                      hintText: 'أحمد محمد',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                    validator: _validateName,
+                  ),
+                  const SizedBox(height: 12),
 
                   // البريد الإلكتروني
                   TextFormField(
@@ -97,44 +165,61 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                     decoration: InputDecoration(
                       labelText: 'البريد الإلكتروني',
                       hintText: 'name@example.com',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
                     validator: _validateEmail,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // رقم الهاتف
+                  TextFormField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'رقم الهاتف',
+                      hintText: '777777777',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                    validator: _validatePhone,
                   ),
                   const SizedBox(height: 12),
 
                   // كلمة المرور
                   TextFormField(
                     controller: _pass,
-                    obscureText: _obscure1,
+                    obscureText: _obscurePass,
                     decoration: InputDecoration(
                       labelText: 'كلمة المرور',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       suffixIcon: IconButton(
-                        onPressed: () => setState(() => _obscure1 = !_obscure1),
-                        icon: Icon(_obscure1 ? Icons.visibility : Icons.visibility_off),
+                        onPressed:
+                            () => setState(() => _obscurePass = !_obscurePass),
+                        icon: Icon(
+                          _obscurePass
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
                       ),
                     ),
                     validator: _validatePass,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // إعادة كلمة المرور
-                  TextFormField(
-                    controller: _confirm,
-                    obscureText: _obscure2,
-                    decoration: InputDecoration(
-                      labelText: 'إعادة كلمة المرور',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      suffixIcon: IconButton(
-                        onPressed: () => setState(() => _obscure2 = !_obscure2),
-                        icon: Icon(_obscure2 ? Icons.visibility : Icons.visibility_off),
-                      ),
-                    ),
-                    validator: _validateConfirm,
                   ),
 
                   const SizedBox(height: 22),
@@ -150,8 +235,18 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: _submit,
-                      child: const Text('إنشاء حساب'),
+                      onPressed: _isLoading ? null : _submit,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text('إنشاء حساب'),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -169,7 +264,9 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                       ),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('الدخول عبر Google (تصميم)')),
+                          const SnackBar(
+                            content: Text('الدخول عبر Google (تصميم)'),
+                          ),
                         );
                       },
                       child: Row(
@@ -178,7 +275,10 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                           CircleAvatar(
                             radius: 10,
                             backgroundColor: Colors.white,
-                            child: Text('G', style: TextStyle(color: Colors.black)),
+                            child: Text(
+                              'G',
+                              style: TextStyle(color: Colors.black),
+                            ),
                           ),
                           SizedBox(width: 8),
                           Text('الدخول عبر Google'),
@@ -191,7 +291,10 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                   // لديك حساب؟ تسجيل الدخول
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.black54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
                       children: [
                         const TextSpan(text: 'لديك حساب؟ '),
                         TextSpan(
@@ -201,13 +304,16 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => const ParentLoginScreen()),
-                              );
-                            },
+                          recognizer:
+                              TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ParentLoginScreen(),
+                                    ),
+                                  );
+                                },
                         ),
                       ],
                     ),

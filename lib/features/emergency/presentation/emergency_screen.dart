@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../models/child_model.dart';
 
 class EmergencyScreen extends StatefulWidget {
-  const EmergencyScreen({super.key});
+  final Child? child;
+
+  const EmergencyScreen({super.key, this.child});
 
   @override
   State<EmergencyScreen> createState() => _EmergencyScreenState();
@@ -10,8 +13,8 @@ class EmergencyScreen extends StatefulWidget {
 
 class _EmergencyScreenState extends State<EmergencyScreen>
     with SingleTickerProviderStateMixin {
-  static const Color bg     = Color(0xFFE9F6FF);
-  static const Color navy   = Color(0xFF08376B);
+  static const Color bg = Color(0xFFE9F6FF);
+  static const Color navy = Color(0xFF08376B);
   static const Color danger = Color(0xFFE53935);
 
   late final AnimationController _pulse;
@@ -38,24 +41,40 @@ class _EmergencyScreenState extends State<EmergencyScreen>
   Future<void> _confirmAndSend() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: const Text('تأكيد إرسال الطوارئ'),
-          content: const Text('هل تريد بالتأكيد إرسال إشعار طارئ إلى ولي الأمر؟'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('إرسال')),
-          ],
-        ),
-      ),
+      builder:
+          (_) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: const Text('تأكيد إرسال الطوارئ'),
+              content: const Text(
+                'هل تريد بالتأكيد إرسال إشعار طارئ إلى ولي الأمر؟',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('إلغاء'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('إرسال'),
+                ),
+              ],
+            ),
+          ),
     );
 
     if (ok == true && mounted) {
       // هنا تضع استدعاء API أو منطق الإرسال الفعلي لاحقاً
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم إرسال إشعار الطوارئ ✅')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم إرسال إشعار الطوارئ ✅')));
+
+      // If we have child data, we could use it here for more personalized messaging
+      if (widget.child != null) {
+        debugPrint(
+          'Emergency alert sent for child: ${widget.child!.name} (ID: ${widget.child!.id})',
+        );
+      }
     }
   }
 
@@ -84,9 +103,35 @@ class _EmergencyScreenState extends State<EmergencyScreen>
             child: Column(
               children: [
                 const SizedBox(height: 8),
+                // Display child information if available
+                if (widget.child != null) ...[
+                  Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'معلومات الطفل:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text('الاسم: ${widget.child!.name}'),
+                          Text('البريد الإلكتروني: ${widget.child!.email}'),
+                          Text('العمر: ${widget.child!.age} سنة'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 // نبض دائري مع صورة الطوارئ في المنتصف (استبدال الأيقونة بالصورة)
-               Image.asset('assets/images/emergency.png'),
-                 
+                Image.asset('assets/images/emergency.png'),
+
                 const SizedBox(height: 12),
                 const Text(
                   'استخدم هذا الزر في الحالات الطارئة فقط',
@@ -109,7 +154,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                       BoxShadow(
                         color: Colors.black12.withOpacity(.06),
                         blurRadius: 8,
-                      )
+                      ),
                     ],
                   ),
                   child: const Column(
@@ -146,7 +191,10 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                     onPressed: _confirmAndSend,
                     child: const Text(
                       'إرسال طوارئ',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),

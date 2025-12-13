@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../home/presentation/home_screen.dart';
 import 'parent_signup_screen.dart';
+import '../data/services/auth_service.dart';
 
 class ParentLoginScreen extends StatefulWidget {
   const ParentLoginScreen({super.key});
@@ -13,8 +14,11 @@ class ParentLoginScreen extends StatefulWidget {
 class _ParentLoginScreenState extends State<ParentLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
+  final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _isLoading = false;
+
+  final _authService = AuthService();
 
   @override
   void dispose() {
@@ -32,10 +36,10 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
 
   String? _validatePassword(String? v) {
     if (v == null || v.isEmpty) return 'أدخل كلمة المرور';
-    final hasLen  = v.length >= 8;
-    final hasUp   = RegExp(r'[A-Z]').hasMatch(v);
-    final hasLow  = RegExp(r'[a-z]').hasMatch(v);
-    final hasNum  = RegExp(r'[0-9]').hasMatch(v);
+    final hasLen = v.length >= 8;
+    final hasUp = RegExp(r'[A-Z]').hasMatch(v);
+    final hasLow = RegExp(r'[a-z]').hasMatch(v);
+    final hasNum = RegExp(r'[0-9]').hasMatch(v);
     final hasSpec = RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(v);
     if (!(hasLen && hasUp && hasLow && hasNum && hasSpec)) {
       return 'كلمة المرور ضعيفة: 8+ وتتضمن كبير/صغير/رقم/رمز.';
@@ -43,21 +47,61 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
     return null;
   }
 
-  void _submit() {
-  final ok = _formKey.currentState?.validate() ?? false;
-  if (!ok) return;
+  void _submit() async {
+    final ok = _formKey.currentState?.validate() ?? false;
+    if (!ok) return;
 
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (_) => const HomeScreen()),
-    (_) => false,
-  );
-}
+    setState(() => _isLoading = true);
 
+    try {
+      final response = await _authService.parentLogin(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        // Success - Navigate to home screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تسجيل الدخول بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (_) => false,
+        );
+      } else {
+        // Error - Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.error ?? 'فشل تسجيل الدخول'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('حدث خطأ: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    const bg   = Color(0xFFE6F4FA);
+    const bg = Color(0xFFE6F4FA);
     const navy = Color(0xFF0A2E66);
 
     return Scaffold(
@@ -74,8 +118,14 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                   const SizedBox(height: 12),
                   Image.asset('assets/images/logo.png', height: 60),
                   const SizedBox(height: 8),
-                  const Text('تسجيل دخول وليّ الأمر',
-                      style: TextStyle(color: navy, fontSize: 20, fontWeight: FontWeight.w800)),
+                  const Text(
+                    'تسجيل دخول وليّ الأمر',
+                    style: TextStyle(
+                      color: navy,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 24),
 
                   // البريد
@@ -85,8 +135,13 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                     decoration: InputDecoration(
                       labelText: 'البريد الإلكتروني',
                       hintText: 'name@example.com',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
                     validator: _validateEmail,
                   ),
@@ -98,11 +153,18 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                     obscureText: _obscure,
                     decoration: InputDecoration(
                       labelText: 'كلمة المرور',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),
-                        icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                        icon: Icon(
+                          _obscure ? Icons.visibility : Icons.visibility_off,
+                        ),
                       ),
                     ),
                     validator: _validatePassword,
@@ -117,10 +179,22 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: navy,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      onPressed: _submit,
-                      child: const Text('تسجيل الدخول'),
+                      onPressed: _isLoading ? null : _submit,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text('تسجيل الدخول'),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -129,7 +203,10 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.black54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
                       children: [
                         const TextSpan(text: 'ليس لديك حساب؟ '),
                         TextSpan(
@@ -139,13 +216,17 @@ class _ParentLoginScreenState extends State<ParentLoginScreen> {
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const ParentSignupScreen()),
-                              );
-                            },
+                          recognizer:
+                              TapGestureRecognizer()
+                                ..onTap = () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => const ParentSignupScreen(),
+                                    ),
+                                  );
+                                },
                         ),
                       ],
                     ),

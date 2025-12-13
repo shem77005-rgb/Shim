@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:safechild_system/features/auth/presentation/child_login_screen.dart';
+import 'package:safechild_system/features/children/presentation/child_login_screen.dart';
 import 'package:safechild_system/features/onboarding/presentation/parent_onboarding_screen.dart';
 
 

@@ -3,8 +3,6 @@
 // import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
 // import 'child_edit_screen.dart';
 
-
-
 // class ChildModel {
 //   String name;
 //   String age;   // مثال: "7 سنوات"
@@ -380,9 +378,6 @@
 //   }
 // }
 
-  
-
-
 // ///==================== عناصر الواجهة الثابتة ====================
 
 // class _TopBar extends StatelessWidget {
@@ -560,40 +555,14 @@ import 'package:flutter/material.dart';
 import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
 import 'child_edit_screen.dart';
 
-// شاشة الإشعارات (تأكد أن المسار صحيح في مشروعك)
 import 'package:safechild_system/features/notifications/presentation/notifications_screen.dart';
 
-class ChildModel {
-  String name;
-  String age;   // مثال: "7 سنوات"
-  String gender; // "ذكر" / "أنثى"
-  String email;
-  String password;
-
-  ChildModel({
-    required this.name,
-    required this.age,
-    required this.gender,
-    required this.email,
-    required this.password,
-  });
-
-  ChildModel copyWith({
-    String? name,
-    String? age,
-    String? gender,
-    String? email,
-    String? password,
-  }) {
-    return ChildModel(
-      name: name ?? this.name,
-      age: age ?? this.age,
-      gender: gender ?? this.gender,
-      email: email ?? this.email,
-      password: password ?? this.password,
-    );
-  }
-}
+// Import the new Child model and service
+import '../../../models/child_model.dart';
+import '../../../services/child_service.dart';
+import '../../../core/api/api_response.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../features/auth/data/services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -608,7 +577,75 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color darkTxt = Color(0xFF28323B);
 
   // القائمة تبدأ فارغة
-  final List<ChildModel> _children = [];
+  final List<Child> _children = [];
+  late ChildService _childService;
+  String _parentId = '';
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final authService = AuthService();
+    _childService = ChildService(apiClient: authService.apiClient);
+    _loadParentId().then((_) => _loadChildren());
+  }
+
+  Future<void> _loadParentId() async {
+    // Get parent ID from authenticated user
+    final authService = AuthService();
+    final user = await authService.getCurrentUser();
+    if (user != null) {
+      print('🔵 [HomeScreen] Loaded parent ID from user: ${user.id}');
+      setState(() {
+        _parentId = user.id;
+      });
+    } else {
+      // Fallback to stored parent_id or default
+      final prefs = await SharedPreferences.getInstance();
+      final storedParentId =
+          prefs.getString('parent_id') ?? '1'; // Default to '1' for testing
+      print('🔵 [HomeScreen] Using stored/default parent ID: $storedParentId');
+      setState(() {
+        _parentId = storedParentId;
+      });
+    }
+    print('🔵 [HomeScreen] Final parent ID: $_parentId');
+  }
+
+  Future<void> _loadChildren() async {
+    if (_parentId.isEmpty) return;
+    print('🔵 [HomeScreen] Loading children for parent ID: $_parentId');
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _childService.getParentChildren(
+        parentId: _parentId,
+      );
+      if (response.isSuccess && response.data != null) {
+        setState(() {
+          _children.clear();
+          _children.addAll(response.data!);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.error ?? 'فشل في تحميل قائمة الأطفال'),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('حدث خطأ: ${e.toString()}')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -625,7 +662,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // بطاقات إحصائية مختصرة
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     // الآن: البطاقة - عند الضغط تفتح صفحة "تنبيهات جديدة" مستقلة (NewAlertsScreen)
@@ -634,7 +674,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const NewAlertsScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const NewAlertsScreen(),
+                            ),
                           );
                         },
                         child: const _InfoStatCard(
@@ -652,7 +694,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
                           );
                         },
                         child: const _InfoStatCard(
@@ -674,9 +718,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     // عنوان القسم + زر إضافة طفل
                     Row(
                       children: [
-                        const Text('حسابات الأبناء',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800, color: darkTxt)),
+                        const Text(
+                          'حسابات الأبناء',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: darkTxt,
+                          ),
+                        ),
                         const Spacer(),
                         TextButton.icon(
                           onPressed: _openAddChildSheet,
@@ -685,15 +733,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextButton.styleFrom(
                             foregroundColor: Color.fromRGBO(255, 255, 255, 1),
                             backgroundColor: const Color(0xFF27AE60),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
 
+                    // Show loading indicator
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
                     // لو القائمة فارغة نعرض بطاقة فارغة
-                    if (_children.isEmpty)
+                    else if (_children.isEmpty)
                       const _EmptyCard(
                         title: 'لا توجد حسابات أبناء بعد',
                         subtitle: 'اضغط على زر "إضافة طفل" لإضافة أول حساب',
@@ -712,10 +769,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             return ListTile(
                               leading: const Icon(Icons.child_care_outlined),
                               title: Text(c.name),
-                              subtitle: Text('${c.age} • ${c.gender}'),
+                              subtitle: Text('${c.age} years old'),
                               trailing: TextButton(
                                 onPressed: () async {
-                                  final updated = await Navigator.push<ChildModel>(
+                                  final updated = await Navigator.push<Child>(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => ChildEditScreen(child: c),
@@ -724,7 +781,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   if (updated != null) {
                                     setState(() => _children[i] = updated);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('تم حفظ التعديلات')),
+                                      const SnackBar(
+                                        content: Text('تم حفظ التعديلات'),
+                                      ),
                                     );
                                   }
                                 },
@@ -754,10 +813,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final nameCtrl = TextEditingController();
     final ageCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
-    String gender = 'ذكر';
-    final passCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    bool obscure = true;
+    bool _obscurePassword = true;
 
     showModalBottomSheet(
       context: context,
@@ -771,7 +829,9 @@ class _HomeScreenState extends State<HomeScreen> {
           textDirection: TextDirection.rtl,
           child: Padding(
             padding: EdgeInsets.only(
-              left: 16, right: 16, top: 12,
+              left: 16,
+              right: 16,
+              top: 12,
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
             ),
             child: StatefulBuilder(
@@ -782,97 +842,159 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 34, height: 4,
+                        width: 34,
+                        height: 4,
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.black26, borderRadius: BorderRadius.circular(10),
+                          color: Colors.black26,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      const Text('إضافة طفل',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const Text(
+                        'إضافة طفل',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const SizedBox(height: 12),
 
-                      _field(nameCtrl, 'اسم الطفل',
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'أدخل الاسم' : null),
-                      _field(ageCtrl, 'العمر (مثال: 8 سنوات)',
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'أدخل العمر' : null),
-
-                      // اختيار الجنس
-                      Row(
-                        children: [
-                          const Text('الجنس:'),
-                          const SizedBox(width: 8),
-                          ChoiceChip(
-                            selected: gender == 'ذكر',
-                            label: const Text('ذكر'),
-                            onSelected: (_) => setSheetState(() => gender = 'ذكر'),
-                          ),
-                          const SizedBox(width: 8),
-                          ChoiceChip(
-                            selected: gender == 'أنثى',
-                            label: const Text('أنثى'),
-                            onSelected: (_) => setSheetState(() => gender = 'أنثى'),
-                          ),
-                        ],
+                      _field(
+                        nameCtrl,
+                        'اسم الطفل',
+                        validator:
+                            (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? 'أدخل الاسم'
+                                    : null,
                       ),
-                      const SizedBox(height: 10),
-
-                      _field(emailCtrl, 'البريد الإلكتروني',
-                          keyboard: TextInputType.emailAddress,
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'أدخل البريد';
-                            final ok = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v.trim());
-                            return ok ? null : 'صيغة بريد غير صحيحة';
-                          }),
-
-                      // كلمة المرور
-                      TextFormField(
-                        controller: passCtrl,
-                        obscureText: obscure,
-                        decoration: InputDecoration(
-                          labelText: 'كلمة المرور',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          suffixIcon: IconButton(
-                            onPressed: () => setSheetState(() => obscure = !obscure),
-                            icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
-                          ),
-                        ),
+                      _field(
+                        ageCtrl,
+                        'العمر',
+                        keyboard: TextInputType.number,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'أدخل كلمة المرور';
-                          final strong = v.length >= 8 &&
-                              RegExp(r'[A-Z]').hasMatch(v) &&
-                              RegExp(r'[a-z]').hasMatch(v) &&
-                              RegExp(r'[0-9]').hasMatch(v) &&
-                              RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(v);
-                          return strong ? null : 'اجعلها قوية (8+ كبير/صغير/رقم/رمز)';
+                          if (v == null || v.trim().isEmpty) {
+                            return 'أدخل العمر';
+                          }
+                          final age = int.tryParse(v.trim());
+                          if (age == null || age <= 0) {
+                            return 'أدخل عمر صحيح';
+                          }
+                          return null;
                         },
                       ),
+
+                      _field(
+                        emailCtrl,
+                        'البريد الإلكتروني',
+                        keyboard: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty)
+                            return 'أدخل البريد';
+                          final ok = RegExp(
+                            r'^[^@]+@[^@]+\.[^@]+$',
+                          ).hasMatch(v.trim());
+                          return ok ? null : 'صيغة بريد غير صحيحة';
+                        },
+                      ),
+
+                      // Password field
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: TextFormField(
+                          controller: passwordCtrl,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'كلمة المرور',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setSheetState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'أدخل كلمة المرور';
+                            }
+                            if (v.length < 6) {
+                              return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
                       const SizedBox(height: 14),
 
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: () {
-                            if (!(formKey.currentState?.validate() ?? false)) return;
-                            setState(() {
-                              _children.add(ChildModel(
-                                name: nameCtrl.text.trim(),
-                                age: ageCtrl.text.trim(),
-                                gender: gender,
+                          onPressed: () async {
+                            if (!(formKey.currentState?.validate() ?? false))
+                              return;
+
+                            try {
+                              print(
+                                '🔵 [HomeScreen] Creating child with parent ID: $_parentId',
+                              );
+                              final response = await _childService.createChild(
+                                parentId: _parentId,
                                 email: emailCtrl.text.trim(),
-                                password: passCtrl.text,
-                              ));
-                            });
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم إضافة الطفل')),
-                            );
+                                password: passwordCtrl.text,
+                                name: nameCtrl.text.trim(),
+                                age: int.tryParse(ageCtrl.text.trim()) ?? 0,
+                              );
+
+                              if (response.isSuccess && response.data != null) {
+                                setState(() {
+                                  _children.add(response.data!);
+                                });
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم إضافة الطفل'),
+                                  ),
+                                );
+
+                                // Refresh the list
+                                _loadChildren();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      response.error ?? 'فشل في إضافة الطفل',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('حدث خطأ: ${e.toString()}'),
+                                ),
+                              );
+                            }
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: navy,
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           child: const Text('حفظ'),
                         ),
@@ -903,7 +1025,10 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -935,13 +1060,20 @@ class _ContentModerationCard extends StatelessWidget {
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF27AE60),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const PolicySettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const PolicySettingsScreen(),
+                  ),
                 );
               },
               icon: const Icon(Icons.settings_outlined, size: 18),
@@ -966,26 +1098,38 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-      decoration: const BoxDecoration(color: Colors.white, boxShadow: [
-        BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
-      ]),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
       child: Row(
         children: [
           const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 18)),
           const Spacer(),
           Row(
             children: [
-              Image.asset('assets/images/logo.png',
-                  height: 22, errorBuilder: (_, __, ___) => const SizedBox()),
+              Image.asset(
+                'assets/images/logo.png',
+                height: 22,
+                errorBuilder: (_, __, ___) => const SizedBox(),
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Safe Child System',
-                style: TextStyle(fontWeight: FontWeight.w700, color: _HomeScreenState.navy),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _HomeScreenState.navy,
+                ),
               ),
             ],
           ),
           const Spacer(),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined)),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.settings_outlined),
+          ),
         ],
       ),
     );
@@ -1006,7 +1150,10 @@ class _SearchField extends StatelessWidget {
           isDense: true,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.black12),
@@ -1042,7 +1189,9 @@ class _InfoStatCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6),
+          ],
         ),
         child: Row(
           children: [
@@ -1056,12 +1205,17 @@ class _InfoStatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -1080,8 +1234,13 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 12),
-      child: Text(text,
-          style: const TextStyle(fontWeight: FontWeight.w800, color: _HomeScreenState.darkTxt)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          color: _HomeScreenState.darkTxt,
+        ),
+      ),
     );
   }
 }
@@ -1105,7 +1264,10 @@ class _EmptyCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -1122,9 +1284,18 @@ class _BottomNavBar extends StatelessWidget {
       currentIndex: 0,
       onTap: (_) {},
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-        BottomNavigationBarItem(icon: Icon(Icons.notifications_none_rounded), label: 'إشعارات'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), label: 'الملف'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_rounded),
+          label: 'الرئيسية',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications_none_rounded),
+          label: 'إشعارات',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline_rounded),
+          label: 'الملف',
+        ),
       ],
     );
   }

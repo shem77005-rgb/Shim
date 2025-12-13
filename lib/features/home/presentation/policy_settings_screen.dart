@@ -1,11 +1,18 @@
+  
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 // import 'package:safechild_system/features/home/presentation/writing_restrictions_screen.dart';
+// import 'package:safechild_system/features/report/presentation/report_screen.dart';
 
 // // استورد الشاشات التي نفتحها من هنا:
 // import 'emergency_setting_screen.dart';
 // import 'block_sites_screen.dart'; // <-- تأكد أن هذا الملف موجود في المسار/أعد اسم المسار إن لزم
+
+// // استيراد مكوّن الأزرار لفتح صفحات الإعداد (Usage / Accessibility)
+// import 'package:safechild_system/widgets/access_buttons.dart';
+
+//  // تأكد من تعديل المسار
 
 // class PolicySettingsScreen extends StatefulWidget {
 //   const PolicySettingsScreen({super.key});
@@ -120,6 +127,12 @@
 //                 }),
 //               ),
 //             ),
+
+//             const SizedBox(height: 16),
+
+//             // <<< هنا أضفت أزرار الوصول لاستخدام التطبيقات وAccessibility >>>
+//             // تظهر قبل عنوان "القيود" لتسهيل إعطاء الأذونات للوالد
+//             const AccessButtons(),
 //             const SizedBox(height: 16),
 
 //             const Text(
@@ -161,9 +174,7 @@
 //                   if (item.title == 'مدة استخدام التطبيقات') {
 //                     Navigator.push(
 //                       context,
-//                       MaterialPageRoute(
-//                         builder: (_) => const AppsScreen(),
-//                       ),
+//                       MaterialPageRoute(builder: (_) => const AppsScreen()),
 //                     );
 //                     return;
 //                   }
@@ -173,6 +184,21 @@
 //                       context,
 //                       MaterialPageRoute(
 //                         builder: (_) => const WritingRestrictionsScreen(),
+//                       ),
+//                     );
+//                     return;
+//                   }
+                  
+//                   // **التعامل مع زر التقارير**
+//                   if (item.title == 'التقارير') {
+//                     // 1. توليد الملخص وتحديث البيانات الوهمية
+//                     placeholderData.summary = generateSummary(placeholderData);
+                    
+//                     // 2. فتح شاشة التقارير
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (_) => ReportScreen(data: placeholderData),
 //                       ),
 //                     );
 //                     return;
@@ -196,6 +222,8 @@
 //     super.debugFillProperties(properties);
 //     properties.add(ColorProperty('info', info));
 //   }
+  
+//   String? generateSummary(ReportData placeholderData) {}
 // }
 
 // // ====== نماذج وعناصر مساعدة ======
@@ -252,8 +280,9 @@
 //                   height: 26,
 //                   fit: BoxFit.contain,
 //                   // لو الصورة ناقصة ما يخرب التصميم
-//                   errorBuilder: (_, __, ___) =>
-//                       const Icon(Icons.image_not_supported_outlined),
+//                   errorBuilder:
+//                       (_, __, ___) =>
+//                           const Icon(Icons.image_not_supported_outlined),
 //                 ),
 //               ),
 //               title: Text(
@@ -276,7 +305,10 @@
 //                           : Icons.info_outline_rounded,
 //                       color: navy,
 //                     ),
-//                     onPressed: () => setState(() => widget.item.showHelp = !widget.item.showHelp),
+//                     onPressed:
+//                         () => setState(
+//                           () => widget.item.showHelp = !widget.item.showHelp,
+//                         ),
 //                   ),
 //                   IconButton(
 //                     tooltip: 'فتح',
@@ -291,7 +323,9 @@
 //             AnimatedCrossFade(
 //               duration: const Duration(milliseconds: 200),
 //               crossFadeState:
-//                   widget.item.showHelp ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+//                   widget.item.showHelp
+//                       ? CrossFadeState.showSecond
+//                       : CrossFadeState.showFirst,
 //               firstChild: const SizedBox.shrink(),
 //               secondChild: Container(
 //                 width: double.infinity,
@@ -320,17 +354,34 @@
 //   }
 // }
 
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 import 'package:safechild_system/features/home/presentation/writing_restrictions_screen.dart';
+import 'package:safechild_system/features/report/presentation/report_screen.dart';
 
-// استورد الشاشات التي نفتحها من هنا:
 import 'emergency_setting_screen.dart';
-import 'block_sites_screen.dart'; // <-- تأكد أن هذا الملف موجود في المسار/أعد اسم المسار إن لزم
+import 'block_sites_screen.dart';
 
-// استيراد مكوّن الأزرار لفتح صفحات الإعداد (Usage / Accessibility)
+
 import 'package:safechild_system/widgets/access_buttons.dart';
+
+
+
+
+class ChildModel {
+  final String name;
+  ChildModel({required this.name});
+}
+
+
+final List<ChildModel> _mockChildren = [
+  ChildModel(name: 'أحمد'),
+  ChildModel(name: 'لانا'),
+  ChildModel(name: 'يوسف'),
+  ChildModel(name: 'سارة'),
+];
 
 class PolicySettingsScreen extends StatefulWidget {
   const PolicySettingsScreen({super.key});
@@ -344,7 +395,8 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
   static const Color navy = Color(0xFF0A2E66);
   static const Color info = Color(0xFFE8F3FF);
 
-  final List<String> _children = ['أحمد', 'لانا', 'يوسف'];
+  // استخدام قائمة أسماء الأطفال المضافة ديناميكيًا
+  final List<String> _childrenNames = _mockChildren.map((c) => c.name).toList();
   int _selectedChild = 0;
 
   final List<_Restriction> _items = [
@@ -423,13 +475,13 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(_children.length, (i) {
+                children: List.generate(_childrenNames.length, (i) {
                   final selected = _selectedChild == i;
                   return Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: ChoiceChip(
                       label: Text(
-                        _children[i],
+                        _childrenNames[i],
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: selected ? Colors.white : navy,
@@ -506,6 +558,21 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                     );
                     return;
                   }
+                  
+                  // **التعامل مع زر التقارير**
+                  if (item.title == 'التقارير') {
+                    // 1. توليد الملخص وتحديث البيانات الوهمية
+                    placeholderData.summary = generateSummary(placeholderData);
+                    
+                    // 2. فتح شاشة التقارير
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReportScreen(data: placeholderData),
+                      ),
+                    );
+                    return;
+                  }
 
                   // افتراضي: رسالة مؤقتة
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -525,6 +592,9 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
     super.debugFillProperties(properties);
     properties.add(ColorProperty('info', info));
   }
+}
+
+String? generateSummary(ReportData placeholderData) {
 }
 
 // ====== نماذج وعناصر مساعدة ======
@@ -566,7 +636,7 @@ class _RestrictionTileState extends State<_RestrictionTile> {
         child: Column(
           children: [
             ListTile(
-              // الصورة (بدل الأيقونة)
+             
               leading: Container(
                 width: 42,
                 height: 42,

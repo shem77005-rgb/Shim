@@ -38,6 +38,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   appcheck: ^1.5.4+1
   flutter_accessibility_service: ^1.0.0
+  pdf: ^3.10.8 
+  
+  printing: ^5.12.0
+  
+  # HTTP and API
+  http: ^1.1.0
+  shared_preferences: ^2.2.2 
 
 dev_dependencies:
   flutter_test:
