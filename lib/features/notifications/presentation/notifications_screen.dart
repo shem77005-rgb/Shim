@@ -41,8 +41,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         floatingActionButton: FloatingActionButton(
           onPressed: _addDemoNotification,
           backgroundColor: const Color(0xFF0A2E66),
-          child: const Icon(Icons.add),
           tooltip: 'إضافة إشعار تجريبي',
+          child: const Icon(Icons.add),
         ),
       ),
     );

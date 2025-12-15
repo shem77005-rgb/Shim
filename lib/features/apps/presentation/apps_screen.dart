@@ -9,7 +9,7 @@ import '../presentation/app_usage_detail_screen.dart';
 import '../../../native_bridge.dart';
 
 class AppsScreen extends StatefulWidget {
-  const AppsScreen({Key? key}) : super(key: key);
+  const AppsScreen({super.key});
   static const routeName = '/app_usage';
 
   @override
@@ -338,7 +338,7 @@ else {
                             child: Text(
                               _apps.isEmpty
                                   ? 'لم تُكتشف تطبيقات'
-                                  : 'لا نتائج عن \"$_query\"',
+                                  : 'لا نتائج عن "${_query}"',
                             ),
                           )
                           : ListView.separated(

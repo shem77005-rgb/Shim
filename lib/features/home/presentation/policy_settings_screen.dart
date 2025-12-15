@@ -1,4 +1,3 @@
-  
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
@@ -188,12 +187,12 @@
 //                     );
 //                     return;
 //                   }
-                  
+
 //                   // **التعامل مع زر التقارير**
 //                   if (item.title == 'التقارير') {
 //                     // 1. توليد الملخص وتحديث البيانات الوهمية
 //                     placeholderData.summary = generateSummary(placeholderData);
-                    
+
 //                     // 2. فتح شاشة التقارير
 //                     Navigator.push(
 //                       context,
@@ -222,7 +221,7 @@
 //     super.debugFillProperties(properties);
 //     properties.add(ColorProperty('info', info));
 //   }
-  
+
 //   String? generateSummary(ReportData placeholderData) {}
 // }
 
@@ -354,7 +353,6 @@
 //   }
 // }
 
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
@@ -364,24 +362,12 @@ import 'package:safechild_system/features/report/presentation/report_screen.dart
 import 'emergency_setting_screen.dart';
 import 'block_sites_screen.dart';
 
-
 import 'package:safechild_system/widgets/access_buttons.dart';
 
-
-
-
-class ChildModel {
-  final String name;
-  ChildModel({required this.name});
-}
-
-
-final List<ChildModel> _mockChildren = [
-  ChildModel(name: 'أحمد'),
-  ChildModel(name: 'لانا'),
-  ChildModel(name: 'يوسف'),
-  ChildModel(name: 'سارة'),
-];
+// Import child service and models
+import '../../../services/child_service.dart';
+import '../../../models/child_model.dart';
+import '../../../features/auth/data/services/auth_service.dart';
 
 class PolicySettingsScreen extends StatefulWidget {
   const PolicySettingsScreen({super.key});
@@ -395,9 +381,103 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
   static const Color navy = Color(0xFF0A2E66);
   static const Color info = Color(0xFFE8F3FF);
 
-  // استخدام قائمة أسماء الأطفال المضافة ديناميكيًا
-  final List<String> _childrenNames = _mockChildren.map((c) => c.name).toList();
+  // Load children dynamically from the database
+  List<Child> _children = [];
+  bool _isLoadingChildren = true;
+  String _parentId = '';
   int _selectedChild = 0;
+
+  late ChildService _childService;
+  late AuthService _authService;
+
+  @override
+  void initState() {
+    super.initState();
+    _authService = AuthService();
+    _childService = ChildService(apiClient: _authService.apiClient);
+    _loadParentAndChildren();
+  }
+
+  Future<void> _loadParentAndChildren() async {
+    try {
+      print('🔵 [PolicySettings] Loading parent ID and children');
+
+      // Get parent ID from authenticated user
+      final user = await _authService.getCurrentUser();
+      if (user != null && user.userType == 'parent') {
+        setState(() {
+          _parentId = user.id;
+        });
+        print('🔵 [PolicySettings] Parent ID: $_parentId');
+
+        // Load children for this parent
+        await _loadChildren();
+      } else {
+        print('⚠️ [PolicySettings] Current user is not a parent');
+        setState(() {
+          _isLoadingChildren = false;
+        });
+      }
+    } catch (e) {
+      print('❌ [PolicySettings] Error loading parent/children: $e');
+      setState(() {
+        _isLoadingChildren = false;
+      });
+    }
+  }
+
+  Future<void> _loadChildren() async {
+    if (_parentId.isEmpty) {
+      print('⚠️ [PolicySettings] Cannot load children: Parent ID is empty');
+      setState(() {
+        _isLoadingChildren = false;
+      });
+      return;
+    }
+
+    try {
+      print('🔵 [PolicySettings] Fetching children for parent: $_parentId');
+      final response = await _childService.getParentChildren(
+        parentId: _parentId,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        print('✅ [PolicySettings] Loaded ${response.data!.length} children');
+
+        // Client-side filtering for safety
+        final filteredChildren =
+            response.data!.where((child) {
+              return child.parentId == _parentId;
+            }).toList();
+
+        print(
+          '🔵 [PolicySettings] After filtering: ${filteredChildren.length} children',
+        );
+
+        setState(() {
+          _children = filteredChildren;
+          _isLoadingChildren = false;
+        });
+
+        // Log each child
+        for (var child in _children) {
+          print(
+            '🔵 [PolicySettings] Child: ${child.name} (ID: ${child.id}, Parent: ${child.parentId})',
+          );
+        }
+      } else {
+        print('❌ [PolicySettings] Failed to load children: ${response.error}');
+        setState(() {
+          _isLoadingChildren = false;
+        });
+      }
+    } catch (e) {
+      print('❌ [PolicySettings] Error loading children: $e');
+      setState(() {
+        _isLoadingChildren = false;
+      });
+    }
+  }
 
   final List<_Restriction> _items = [
     _Restriction(
@@ -472,31 +552,66 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(_childrenNames.length, (i) {
-                  final selected = _selectedChild == i;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ChoiceChip(
-                      label: Text(
-                        _childrenNames[i],
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: selected ? Colors.white : navy,
-                        ),
+
+            // Show loading indicator while fetching children
+            if (_isLoadingChildren)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            // Show message if no children found
+            else if (_children.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.grey),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'لا توجد حسابات أطفال مضافة. أضف طفلًا أولاً من الصفحة الرئيسية.',
+                        style: TextStyle(color: Colors.grey),
                       ),
-                      selected: selected,
-                      selectedColor: navy,
-                      backgroundColor: Colors.white,
-                      side: BorderSide(color: selected ? navy : Colors.black12),
-                      onSelected: (_) => setState(() => _selectedChild = i),
                     ),
-                  );
-                }),
+                  ],
+                ),
+              )
+            // Show children chips
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(_children.length, (i) {
+                    final selected = _selectedChild == i;
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: ChoiceChip(
+                        label: Text(
+                          _children[i].name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: selected ? Colors.white : navy,
+                          ),
+                        ),
+                        selected: selected,
+                        selectedColor: navy,
+                        backgroundColor: Colors.white,
+                        side: BorderSide(
+                          color: selected ? navy : Colors.black12,
+                        ),
+                        onSelected: (_) => setState(() => _selectedChild = i),
+                      ),
+                    );
+                  }),
+                ),
               ),
-            ),
 
             const SizedBox(height: 16),
 
@@ -558,12 +673,12 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                     );
                     return;
                   }
-                  
+
                   // **التعامل مع زر التقارير**
                   if (item.title == 'التقارير') {
                     // 1. توليد الملخص وتحديث البيانات الوهمية
                     placeholderData.summary = generateSummary(placeholderData);
-                    
+
                     // 2. فتح شاشة التقارير
                     Navigator.push(
                       context,
@@ -594,8 +709,7 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
   }
 }
 
-String? generateSummary(ReportData placeholderData) {
-}
+String? generateSummary(ReportData placeholderData) {}
 
 // ====== نماذج وعناصر مساعدة ======
 
@@ -636,7 +750,6 @@ class _RestrictionTileState extends State<_RestrictionTile> {
         child: Column(
           children: [
             ListTile(
-             
               leading: Container(
                 width: 42,
                 height: 42,

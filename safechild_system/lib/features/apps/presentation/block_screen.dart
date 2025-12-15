@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 class BlockScreen extends StatelessWidget {
   static const routeName = '/block_screen';
   final String packageName;
-  const BlockScreen({Key? key, required this.packageName}) : super(key: key);
+  const BlockScreen({super.key, required this.packageName});
 
   @override
   Widget build(BuildContext context) {

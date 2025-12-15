@@ -309,14 +309,8 @@ class AuthService {
     await prefs.setString(_userDataKey, json.encode(userData));
 
     // Also save parent ID separately for easier access
-    // For child users, we save the parent ID from their data
-    // For parent users, we save their own ID
-    if (authResponse.user.userType == 'child' &&
-        authResponse.user.parentId.isNotEmpty) {
-      await prefs.setString('parent_id', authResponse.user.parentId);
-    } else {
-      await prefs.setString('parent_id', authResponse.user.id);
-    }
+    // For child users, we still save the parent ID
+    await prefs.setString('parent_id', authResponse.user.id);
 
     // Set token in API client
     _apiClient.setAuthToken(authResponse.token);
@@ -328,7 +322,6 @@ class AuthService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userDataKey);
-    await prefs.remove('parent_id'); // Also remove parent_id
   }
 
   /// Get stored token

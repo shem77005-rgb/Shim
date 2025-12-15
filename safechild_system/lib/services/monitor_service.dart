@@ -86,7 +86,7 @@ class MonitorService {
 /// شاشة حظر بسيطة (تظهر كـ full-screen dialog)
 class BlockScreen extends StatelessWidget {
   final String packageName;
-  const BlockScreen({required this.packageName, Key? key}) : super(key: key);
+  const BlockScreen({required this.packageName, super.key});
 
   @override
   Widget build(BuildContext context) {

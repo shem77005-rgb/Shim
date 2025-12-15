@@ -209,6 +209,24 @@ class ApiClient {
     } else {
       try {
         final jsonData = jsonDecode(response.body);
+
+        // Check for field-specific validation errors (Django REST Framework format)
+        if (jsonData is Map<String, dynamic>) {
+          // Collect all field errors
+          final List<String> errorMessages = [];
+          jsonData.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              errorMessages.add('$key: ${value.first}');
+            } else if (value is String) {
+              errorMessages.add('$key: $value');
+            }
+          });
+
+          if (errorMessages.isNotEmpty) {
+            return ApiResponse.error(errorMessages.join(', '));
+          }
+        }
+
         // Check for different possible error message formats
         final message =
             jsonData['message'] ??

@@ -6,7 +6,7 @@ import 'package:safechild_system/services/native_bridge.dart';
 
 class AppsScreen extends StatefulWidget {
   static const routeName = '/app_usage';
-  const AppsScreen({Key? key}) : super(key: key);
+  const AppsScreen({super.key});
 
   @override
   State<AppsScreen> createState() => _AppsScreenState();
@@ -163,7 +163,7 @@ class _AppsScreenState extends State<AppsScreen> {
               if (_loading) const Expanded(child: Center(child: CircularProgressIndicator()))
               else Expanded(
                 child: _filtered.isEmpty
-                    ? Center(child: Text(_all.isEmpty ? 'لم تُكتشف تطبيقات' : 'لا توجد نتائج عن \"$_query\"'))
+                    ? Center(child: Text(_all.isEmpty ? 'لم تُكتشف تطبيقات' : 'لا توجد نتائج عن "${_query}"'))
                     : ListView.separated(
                         itemCount: _filtered.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
@@ -180,8 +180,8 @@ class _AppsScreenState extends State<AppsScreen> {
                                 final h = d.inHours;
                                 final m = d.inMinutes.remainder(60);
                                 final parts = <String>[];
-                                if (h > 0) parts.add('${h}س');
-                                if (m > 0) parts.add('${m}د');
+                                if (h > 0) parts.add('$hس');
+                                if (m > 0) parts.add('$mد');
                                 return Text('الحد: ${parts.join(' ')} / يوم', style: const TextStyle(fontSize: 12));
                               },
                             ),

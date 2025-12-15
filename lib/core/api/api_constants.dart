@@ -21,6 +21,7 @@ class ApiConstants {
   // Child Endpoints
   static const String childLogin = '/api/child/login/';
   static const String childRegister = '/api/children/';
+  static const String childUpdate = '/api/children/'; // PUT /api/children/{id}/
   static const String emergencyAlert = '/api/emergency/';
 
   // Timeout durations

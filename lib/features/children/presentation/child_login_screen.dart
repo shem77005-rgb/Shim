@@ -72,11 +72,13 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           textDirection: TextDirection.ltr,
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
+                            if (v == null || v.trim().isEmpty) {
                               return 'أدخل البريد الإلكتروني';
+                            }
                             final rx = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
-                            if (!rx.hasMatch(v.trim()))
+                            if (!rx.hasMatch(v.trim())) {
                               return 'صيغة البريد غير صحيحة';
+                            }
                             return null;
                           },
                           decoration: _inputDecoration(),

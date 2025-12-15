@@ -17,6 +17,8 @@ class _EditChildScreenState extends State<EditChildScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _ageController;
+  late final TextEditingController _passwordController;
+  bool _obscurePassword = true;
 
   bool _isLoading = false;
   String _errorMessage = '';
@@ -27,6 +29,7 @@ class _EditChildScreenState extends State<EditChildScreen> {
     _nameController = TextEditingController(text: widget.child.name);
     _emailController = TextEditingController(text: widget.child.email);
     _ageController = TextEditingController(text: widget.child.age.toString());
+    _passwordController = TextEditingController(); // Empty by default
   }
 
   @override
@@ -34,6 +37,7 @@ class _EditChildScreenState extends State<EditChildScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _ageController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -51,6 +55,11 @@ class _EditChildScreenState extends State<EditChildScreen> {
       final childService = ChildService();
       final response = await childService.updateChild(
         childId: widget.child.id,
+        parentId: widget.child.parentId,
+        password:
+            _passwordController.text.isNotEmpty
+                ? _passwordController.text
+                : null,
         email: _emailController.text.trim(),
         name: _nameController.text.trim(),
         age: int.tryParse(_ageController.text) ?? widget.child.age,
@@ -184,6 +193,60 @@ class _EditChildScreenState extends State<EditChildScreen> {
                           }
                           return null;
                         },
+                      ),
+
+                      // Password field
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'كلمة المرور',
+                            helperText:
+                                'اترك الحقل فارغاً للحفاظ على كلمة المرور الحالية',
+                            helperMaxLines: 2,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Colors.black12,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Colors.black12,
+                              ),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (value) {
+                            // Password is optional - only validate if provided
+                            if (value != null &&
+                                value.isNotEmpty &&
+                                value.length < 6) {
+                              return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
 
                       const SizedBox(height: 20),

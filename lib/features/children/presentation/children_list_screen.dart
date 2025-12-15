@@ -39,14 +39,8 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
       );
 
       if (response.isSuccess && response.data != null) {
-        // Additional client-side filtering to ensure only children with matching parent ID are shown
-        final filteredChildren =
-            response.data!
-                .where((child) => child.parentId == widget.parentId)
-                .toList();
-
         setState(() {
-          _children = filteredChildren;
+          _children = response.data!;
         });
       } else {
         setState(() {
@@ -157,7 +151,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
               backgroundColor: Colors.blue.withOpacity(0.2),
               foregroundColor: Colors.blue,
             ),
-            title: Text(child.name),
+            title: Text(child.name), 
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

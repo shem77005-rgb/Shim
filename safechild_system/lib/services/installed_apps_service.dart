@@ -40,12 +40,8 @@ class InstalledAppsService {
 
       // raw غالبًا Iterable<AppInfo>
       Iterable items;
-      if (raw is Iterable) {
-        items = raw;
-      } else {
-        items = [raw];
-      }
-
+      items = raw;
+    
       for (final dynamic r in items) {
         try {
           if (r == null) continue;

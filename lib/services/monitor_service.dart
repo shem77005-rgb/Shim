@@ -71,8 +71,9 @@ class MonitorService {
         final raw = u.totalTimeInForeground;
         int ms = 0;
 
-        if (raw is int) ms = raw as int;
-        else if (raw is String) ms = int.tryParse(raw) ?? 0;
+        if (raw is int) {
+          ms = raw as int;
+        } else if (raw is String) ms = int.tryParse(raw) ?? 0;
 
         totalMs += ms;
       }

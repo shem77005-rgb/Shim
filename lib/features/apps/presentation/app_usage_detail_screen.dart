@@ -14,12 +14,12 @@ class AppUsageDetailScreen extends StatefulWidget {
   final Duration limit;
 
   const AppUsageDetailScreen({
-    Key? key,
+    super.key,
     required this.packageName,
     required this.title,
     this.iconBytes,
     required this.limit,
-  }) : super(key: key);
+  });
 
   @override
   State<AppUsageDetailScreen> createState() => _AppUsageDetailScreenState();

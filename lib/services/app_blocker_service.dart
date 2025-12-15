@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_accessibility_service/constants.dart';
 import 'package:usage_stats/usage_stats.dart';
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';

@@ -39,12 +39,8 @@ class InstalledAppsService {
       if (raw == null) return out;
 
       Iterable items;
-      if (raw is Iterable) {
-        items = raw;
-      } else {
-        items = [raw];
-      }
-
+      items = raw;
+    
       for (final dynamic r in items) {
         try {
           if (r == null) continue;

@@ -18,8 +18,7 @@ class Child {
   factory Child.fromJson(Map<String, dynamic> json) {
     return Child(
       id: json['id']?.toString() ?? '',
-      parentId:
-          json['parent_id']?.toString() ?? json['parent']?.toString() ?? '',
+      parentId: json['parent']?.toString() ?? '',
       email: json['email'] ?? '',
       name: json['name'] ?? '',
       age: json['age'] ?? 0,
@@ -30,7 +29,7 @@ class Child {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'parent': parentId, // Use 'parent' for consistency with API expectations
+      'parent': parentId,
       'email': email,
       'name': name,
       'age': age,
@@ -57,8 +56,7 @@ class ChildCreateRequest {
   /// Convert to JSON for API request
   Map<String, dynamic> toJson() {
     return {
-      'parent':
-          parentId, // Changed from 'parent_id' to 'parent' to match API requirements
+      'parent': parentId,
       'email': email,
       'password': password,
       'name': name,

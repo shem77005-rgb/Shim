@@ -44,8 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeData() async {
     print('🔵 [HomeScreen] Starting _initializeData');
     await _loadParentId();
-    // Wait a bit more to ensure state is updated
-    await Future.delayed(Duration(milliseconds: 200));
+    // Small delay to ensure state is updated
+    await Future.delayed(Duration(milliseconds: 100));
     print(
       '🔵 [HomeScreen] _loadParentId completed with parent ID: $_parentId, calling _loadChildren',
     );
@@ -66,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
       print(
         '🔵 [HomeScreen] User details - Email: ${user.email}, Name: ${user.name}',
       );
-      print('🔵 [HomeScreen] User parentId: "${user.parentId}"');
 
       // Make sure this is a parent user
       if (user.userType != 'parent') {
@@ -79,56 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
           _parentId = '';
         });
         print(
-          '🔵 [HomeScreen] Set parent ID to empty string for non-parent user, value is now: "$_parentId"',
+          '🔵 [HomeScreen] Set parent ID to empty string for non-parent user, value is now: $_parentId',
         );
         return;
       }
 
       // For parent users, use their own ID as the parent ID
-      print('🔵 [HomeScreen] About to set parent ID to user ID: "${user.id}"');
-      if (user.id.isEmpty) {
-        print('❌ [HomeScreen] User ID is empty!');
-        // Try to get from SharedPreferences as fallback
-        final prefs = await SharedPreferences.getInstance();
-        final storedParentId = prefs.getString('parent_id') ?? '';
-        print(
-          '🔵 [HomeScreen] Stored parent ID from SharedPreferences: "$storedParentId"',
-        );
-
-        if (storedParentId.isNotEmpty) {
-          print(
-            '🔵 [HomeScreen] Using stored parent ID from SharedPreferences: "$storedParentId"',
-          );
-          setState(() {
-            _parentId = storedParentId;
-          });
-        } else {
-          print(
-            '❌ [HomeScreen] Could not load parent ID from SharedPreferences.',
-          );
-          setState(() {
-            _parentId = '';
-          });
-
-          // Show error to user
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'خطأ: لم يتم تحميل معرف الوالد. الرجاء تسجيل الدخول مرة أخرى.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } else {
-        setState(() {
-          _parentId = user.id;
-        });
-        print('🔵 [HomeScreen] Set parent ID to user ID: "$_parentId"');
-        print('🔵 [HomeScreen] Parent ID after setState: "$_parentId"');
-      }
+      print('🔵 [HomeScreen] About to set parent ID to user ID: ${user.id}');
+      setState(() {
+        _parentId = user.id;
+      });
+      print('🔵 [HomeScreen] Set parent ID to user ID: $_parentId');
+      print('🔵 [HomeScreen] Parent ID after setState: $_parentId');
     } else {
       // If we can't get the current user, try to get parent ID from SharedPreferences as fallback
       print(
@@ -137,18 +98,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       final storedParentId = prefs.getString('parent_id') ?? '';
       print(
-        '🔵 [HomeScreen] Stored parent ID from SharedPreferences: "$storedParentId"',
+        '🔵 [HomeScreen] Stored parent ID from SharedPreferences: $storedParentId',
       );
 
       if (storedParentId.isNotEmpty) {
         print(
-          '🔵 [HomeScreen] Loaded parent ID from SharedPreferences: "$storedParentId"',
+          '🔵 [HomeScreen] Loaded parent ID from SharedPreferences: $storedParentId',
         );
         setState(() {
           _parentId = storedParentId;
         });
         print(
-          '🔵 [HomeScreen] Parent ID after setState (fallback): "$_parentId"',
+          '🔵 [HomeScreen] Parent ID after setState (fallback): $_parentId',
         );
       } else {
         print(
@@ -160,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _parentId = '';
         });
         print(
-          '🔵 [HomeScreen] _parentId set to empty string (fallback), value is now: "$_parentId"',
+          '🔵 [HomeScreen] _parentId set to empty string (fallback), value is now: $_parentId',
         );
 
         // Show error to user
@@ -176,21 +137,16 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
-    print('🔵 [HomeScreen] Final parent ID: "$_parentId"');
+    print('🔵 [HomeScreen] Final parent ID: $_parentId');
   }
 
   Future<void> _loadChildren() async {
-    print('🔵 [HomeScreen] _loadChildren called with parent ID: "$_parentId"');
+    print('🔵 [HomeScreen] _loadChildren called with parent ID: $_parentId');
     if (_parentId.isEmpty) {
       print('⚠️ [HomeScreen] Cannot load children: Parent ID is empty');
-      // Even if parent ID is empty, we should still update the UI
-      setState(() {
-        _isLoading = false;
-        _children.clear();
-      });
       return;
     }
-    print('🔵 [HomeScreen] Loading children for parent ID: "$_parentId"');
+    print('🔵 [HomeScreen] Loading children for parent ID: $_parentId');
 
     setState(() {
       _isLoading = true;
@@ -199,13 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       print(
-        '🔵 [HomeScreen] Calling getParentChildren with parent ID: "$_parentId"',
+        '🔵 [HomeScreen] Calling getParentChildren with parent ID: $_parentId',
       );
       final response = await _childService.getParentChildren(
         parentId: _parentId,
-      );
-      print(
-        '🔵 [HomeScreen] getParentChildren response: ${response.isSuccess}',
       );
       if (response.isSuccess && response.data != null) {
         print('🔵 [HomeScreen] Received ${response.data!.length} children');
@@ -213,14 +166,21 @@ class _HomeScreenState extends State<HomeScreen> {
         // Debug: Print raw response data
         print('🔵 [HomeScreen] Raw response data: ${response.data}');
 
-        // Additional client-side filtering to ensure only children with matching parent ID are shown
+        // Client-side filtering to ensure only children with matching parent ID are shown
+        // This is a safety measure in case the backend doesn't filter properly
         final filteredChildren =
-            response.data!
-                .where((child) => child.parentId == _parentId)
-                .toList();
+            response.data!.where((child) {
+              final matches = child.parentId == _parentId;
+              if (!matches) {
+                print(
+                  '⚠️ [HomeScreen] Filtering out child: ${child.name} (Parent ID: ${child.parentId} != $_parentId)',
+                );
+              }
+              return matches;
+            }).toList();
 
         print(
-          '🔵 [HomeScreen] After client-side filtering: ${filteredChildren.length} children',
+          '🔵 [HomeScreen] After filtering: ${filteredChildren.length} children match parent ID: $_parentId',
         );
 
         print(
@@ -235,20 +195,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         // Debug: Print each child to verify they belong to this parent
-        print('🔵 [HomeScreen] Checking children for parent ID: "$_parentId"');
+        print('🔵 [HomeScreen] Checking children for parent ID: $_parentId');
         for (var child in _children) {
           print(
-            '🔵 [HomeScreen] Child in list - ID: ${child.id}, Name: ${child.name}, Parent ID: "${child.parentId}", Matches: ${child.parentId == _parentId}',
+            '🔵 [HomeScreen] Child in list - ID: ${child.id}, Name: ${child.name}, Parent ID: ${child.parentId}, Matches: ${child.parentId == _parentId}',
           );
         }
       } else {
-        print('❌ [HomeScreen] Failed to load children: ${response.error}');
-        // Clear the list and show error
-        setState(() {
-          _children.clear();
-          _isLoading = false;
-        });
-
         // Check if context is still mounted before showing snackbar
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -259,13 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     } catch (e) {
-      print('❌ [HomeScreen] Exception while loading children: $e');
-      // Clear the list and show error
-      setState(() {
-        _children.clear();
-        _isLoading = false;
-      });
-
       // Check if context is still mounted before showing snackbar
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -621,14 +567,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   '⚠️ [HomeScreen] Warning: Attempting to use default parent ID',
                                 );
                                 // This might indicate an authentication issue
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'تحذير: معرف الوالد غير صحيح. قد تحتاج إلى تسجيل الدخول مرة أخرى.',
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
                               }
 
                               final response = await _childService.createChild(

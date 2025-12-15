@@ -121,13 +121,11 @@ class ChildService {
         '🔵 [ChildService] استلام الاستجابة بعد: ${duration.inSeconds}.${duration.inMilliseconds % 1000}s',
       );
       print('🔵 [ChildService] Response success: ${response.isSuccess}');
-      print('🔵 [ChildService] Response data: ${response.data}');
 
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل بيانات الطفل...');
         final child = Child.fromJson(response.data);
         print('✅ [ChildService] Child ID: ${child.id}');
-        print('✅ [ChildService] Child Parent ID: ${child.parentId}');
         return ApiResponse.success(child);
       } else {
         print('❌ [ChildService] فشل: ${response.error}');
@@ -147,31 +145,50 @@ class ChildService {
     try {
       print('🔵 [ChildService] الحصول على قائمة الأطفال');
       print('🔵 [ChildService] Parent ID: $parentId');
-      print('🔵 [ChildService] Request URL: /api/children/?parent=$parentId');
+      final url = '/api/children/?parent=$parentId';
+      print('🔵 [ChildService] Request URL: $url');
+      print('🔵 [ChildService] Full URL: ${ApiConstants.fullBaseUrl}$url');
 
       final response = await _apiClient.get<List<dynamic>>(
-        '/api/children/?parent=$parentId', // Use 'parent' parameter as expected by API
+        url,
         requiresAuth: true,
       );
 
-      print('🔵 [ChildService] Response received: ${response.isSuccess}');
-      print('🔵 [ChildService] Response data: ${response.data}');
-      print('🔵 [ChildService] Response error: ${response.error}');
+      print(
+        '🔵 [ChildService] Response received - Success: ${response.isSuccess}',
+      );
 
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل قائمة الأطفال...');
-        print('✅ [ChildService] Raw response data: $response.data');
+        print('✅ [ChildService] Raw response data: ${response.data}');
+        print(
+          '✅ [ChildService] Response data type: ${response.data.runtimeType}',
+        );
+        print(
+          '✅ [ChildService] Response data length: ${(response.data as List).length}',
+        );
+
         final children =
-            (response.data as List)
-                .map((item) => Child.fromJson(item as Map<String, dynamic>))
-                .toList();
+            (response.data as List).map((item) {
+              print('🔵 [ChildService] Processing item: $item');
+              return Child.fromJson(item as Map<String, dynamic>);
+            }).toList();
         print('✅ [ChildService] عدد الأطفال: ${children.length}');
 
         // Debug: Print each child's parent ID to verify filtering
+        print(
+          '🔵 [ChildService] Verifying parent IDs for requested parent: $parentId',
+        );
         for (var child in children) {
+          final matches = child.parentId == parentId;
           print(
-            '✅ [ChildService] Child ID: ${child.id}, Name: ${child.name}, Parent ID: "${child.parentId}"',
+            '✅ [ChildService] Child ID: ${child.id}, Name: ${child.name}, Parent ID: ${child.parentId}, Matches: $matches',
           );
+          if (!matches) {
+            print(
+              '⚠️ [ChildService] WARNING: Backend returned child with different parent ID! Expected: $parentId, Got: ${child.parentId}',
+            );
+          }
         }
 
         return ApiResponse.success(children);
@@ -247,6 +264,8 @@ class ChildService {
   /// Update child information
   Future<ApiResponse<Child>> updateChild({
     required String childId,
+    required String parentId,
+    String? password, // Now optional
     String? email,
     String? name,
     int? age,
@@ -254,16 +273,31 @@ class ChildService {
     try {
       print('🔵 [ChildService] تحديث بيانات طفل');
       print('🔵 [ChildService] Child ID: $childId');
+      print('🔵 [ChildService] Parent ID: $parentId');
 
-      final Map<String, dynamic> updateData = {};
+      final Map<String, dynamic> updateData = {
+        'parent': parentId, // Required by backend
+      };
+
+      // Only include password if provided
+      if (password != null && password.isNotEmpty) {
+        updateData['password'] = password;
+        print('🔵 [ChildService] Password will be updated');
+      } else {
+        print('🔵 [ChildService] Password not provided, keeping existing');
+      }
+
       if (email != null) updateData['email'] = email;
       if (name != null) updateData['name'] = name;
       if (age != null) updateData['age'] = age;
 
       print('🔵 [ChildService] بيانات التحديث: $updateData');
+      print(
+        '🔵 [ChildService] URL: ${ApiConstants.fullBaseUrl}${ApiConstants.childUpdate}$childId/',
+      );
 
       final response = await _apiClient.put<dynamic>(
-        '/api/children/$childId/',
+        '${ApiConstants.childUpdate}$childId/',
         body: updateData,
         requiresAuth: true,
       );
