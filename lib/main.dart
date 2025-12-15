@@ -1,15 +1,8 @@
-
-
-
-
 // import 'package:flutter/material.dart';
 // import 'package:safechild_system/account_type_screen.dart';
 // import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 // import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
 // import 'package:safechild_system/services/monitor_service.dart';
-
-
-
 
 // final GlobalKey<NavigatorState> appNavKey = GlobalKey<NavigatorState>();
 
@@ -40,11 +33,16 @@ import 'package:safechild_system/account_type_screen.dart';
 import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
 import 'package:safechild_system/services/monitor_service.dart';
+import 'package:safechild_system/features/auth/data/services/auth_service.dart';
 
 final GlobalKey<NavigatorState> appNavKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize authentication service
+  final authService = AuthService();
+  await authService.init();
 
   await MonitorService().init(navigatorKey: appNavKey);
 
@@ -57,7 +55,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: appNavKey,   // مهم جدًا لفتح صفحة الحظر من أي مكان
+      navigatorKey: appNavKey, // مهم جدًا لفتح صفحة الحظر من أي مكان
       debugShowCheckedModeBanner: false,
       title: 'SafeChild',
       theme: ThemeData(primarySwatch: Colors.blue),
@@ -72,8 +70,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

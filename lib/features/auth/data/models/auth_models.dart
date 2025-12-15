@@ -47,7 +47,6 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-   
     if (json['success'] != null) {
       final token = json['token'] ?? json['access_token'] ?? '';
       final refreshToken = json['refresh_token'] ?? '';
@@ -62,9 +61,10 @@ class AuthResponse {
         refreshToken: refreshToken,
         user: UserData.fromJson(userData),
       );
-    }
-    
-    else if (json['access'] != null || json['refresh'] != null) {
+    } else if (json['access'] != null || json['refresh'] != null) {
+      // Handle child login response
+      final userType = json['role'] == 'child' ? 'child' : 'parent';
+
       return AuthResponse(
         token: json['access'] ?? '',
         refreshToken: json['refresh'] ?? '',
@@ -73,12 +73,11 @@ class AuthResponse {
           'email': json['email'] ?? '',
           'name': json['name'] ?? '',
           'phone_number': '',
-          'user_type': 'parent',
+          'user_type': userType,
+          'parent_id': json['parent_id']?.toString() ?? '',
         }),
       );
-    }
-    
-    else {
+    } else {
       return AuthResponse(
         token: '',
         refreshToken: '',
@@ -109,6 +108,7 @@ class UserData {
   final String name;
   final String phoneNumber;
   final String userType; // 'parent' or 'child'
+  final String parentId; // For child users, this is their parent's ID
   final DateTime? createdAt;
 
   UserData({
@@ -117,6 +117,7 @@ class UserData {
     required this.name,
     required this.phoneNumber,
     required this.userType,
+    this.parentId = '',
     this.createdAt,
   });
 
@@ -127,6 +128,7 @@ class UserData {
       name: json['name'] ?? '',
       phoneNumber: json['phone_number'] ?? '',
       userType: json['user_type'] ?? json['type'] ?? 'parent',
+      parentId: json['parent_id']?.toString() ?? '',
       createdAt:
           json['created_at'] != null
               ? DateTime.tryParse(json['created_at'].toString())
@@ -141,6 +143,7 @@ class UserData {
       'name': name,
       'phone_number': phoneNumber,
       'user_type': userType,
+      'parent_id': parentId,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     };
   }

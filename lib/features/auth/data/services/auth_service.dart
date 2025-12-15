@@ -139,12 +139,39 @@ class AuthService {
         return ApiResponse.success(authResponse);
       } else {
         print('❌ [AuthService] فشل: ${response.error}');
-        return ApiResponse.error(response.error ?? 'فشل إنشاء الحساب');
+        // Provide more specific error messages for common issues
+        String errorMessage = response.error ?? 'فشل إنشاء الحساب';
+
+        // Handle specific error cases
+        if (errorMessage.contains('database is locked')) {
+          errorMessage =
+              'قاعدة البيانات مشغولة حالياً. حاول مرة أخرى بعد بضع ثوانٍ.';
+        } else if (errorMessage.contains('unique constraint') ||
+            errorMessage.contains('already exists')) {
+          errorMessage =
+              'هذا البريد الإلكتروني مسجل مسبقاً. استخدم بريدًا آخر أو سجل دخولك مباشرة.';
+        }
+
+        return ApiResponse.error(errorMessage);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [AuthService] خطأ في parentSignup: $e');
       print('❌ [AuthService] Error type: ${e.runtimeType}');
-      return ApiResponse.error('حدث خطأ: ${e.toString()}');
+      print('❌ [AuthService] Stack trace: $stackTrace');
+
+      // Provide more specific error messages based on exception type
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+        return ApiResponse.error(
+          'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم وأن عنوان URL صحيح.',
+        );
+      } else if (e.toString().contains('TimeoutException')) {
+        return ApiResponse.error(
+          'انتهت مهلة الاتصال بالخادم. تحقق من اتصال الشبكة.',
+        );
+      } else {
+        return ApiResponse.error('حدث خطأ أثناء إنشاء الحساب: ${e.toString()}');
+      }
     }
   }
 
@@ -154,23 +181,6 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // First, verify this is a child account by checking against child data
-      final childService = ChildService(apiClient: _apiClient);
-      final allChildrenResponse = await childService.getAllChildren();
-
-      if (allChildrenResponse.isSuccess) {
-        // Check if email exists in children list
-        final isChildEmail = allChildrenResponse.data!.any(
-          (child) => child.email == email,
-        );
-
-        if (!isChildEmail) {
-          return ApiResponse.error(
-            'هذا البريد الإلكتروني لا ينتمي إلى حساب طفل',
-          );
-        }
-      }
-
       final request = LoginRequest(email: email, password: password);
 
       final response = await _apiClient.post<dynamic>(
@@ -232,37 +242,45 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // First authenticate the child
-      final authResponse = await childLogin(email: email, password: password);
+      final request = LoginRequest(email: email, password: password);
 
-      if (!authResponse.isSuccess) {
-        return ApiResponse.error(authResponse.error ?? 'فشل تسجيل الدخول');
-      }
-
-      // If authentication successful, fetch all children and find the matching one
-      final childService = ChildService(apiClient: _apiClient);
-      final allChildrenResponse = await childService.getAllChildren();
-
-      if (!allChildrenResponse.isSuccess) {
-        return ApiResponse.error(
-          allChildrenResponse.error ?? 'فشل في الحصول على بيانات الطفل',
-        );
-      }
-
-      // Find the child with matching email
-      final matchedChild = allChildrenResponse.data!.firstWhere(
-        (child) => child.email == email,
-        orElse:
-            () => Child(
-              id: '',
-              parentId: '',
-              email: email,
-              name: authResponse.data!.user.name,
-              age: 0,
-            ),
+      final response = await _apiClient.post<dynamic>(
+        ApiConstants.childLogin,
+        body: request.toJson(),
       );
 
-      return ApiResponse.success(matchedChild);
+      if (response.isSuccess && response.data != null) {
+        // Parse the child login response
+        final childData = response.data as Map<String, dynamic>;
+
+        // Create a child object from the response data
+        final child = Child(
+          id: childData['id']?.toString() ?? '',
+          parentId: childData['parent_id']?.toString() ?? '',
+          email: childData['email'] ?? '',
+          name: childData['name'] ?? '',
+          age: 0, // Age is not provided in the login response
+        );
+
+        // Save auth data for the child
+        final authResponse = AuthResponse(
+          token: childData['access'] ?? '',
+          refreshToken: childData['refresh'] ?? '',
+          user: UserData(
+            id: childData['id']?.toString() ?? '',
+            email: childData['email'] ?? '',
+            name: childData['name'] ?? '',
+            phoneNumber: '',
+            userType: 'child',
+          ),
+        );
+
+        await _saveAuthData(authResponse);
+
+        return ApiResponse.success(child);
+      } else {
+        return ApiResponse.error(response.error ?? 'فشل تسجيل الدخول');
+      }
     } catch (e) {
       return ApiResponse.error('حدث خطأ: ${e.toString()}');
     }
@@ -288,7 +306,17 @@ class AuthService {
 
     // Save user data as JSON string
     final userData = authResponse.user.toJson();
-    await prefs.setString(_userDataKey, userData.toString());
+    await prefs.setString(_userDataKey, json.encode(userData));
+
+    // Also save parent ID separately for easier access
+    // For child users, we save the parent ID from their data
+    // For parent users, we save their own ID
+    if (authResponse.user.userType == 'child' &&
+        authResponse.user.parentId.isNotEmpty) {
+      await prefs.setString('parent_id', authResponse.user.parentId);
+    } else {
+      await prefs.setString('parent_id', authResponse.user.id);
+    }
 
     // Set token in API client
     _apiClient.setAuthToken(authResponse.token);
@@ -300,6 +328,7 @@ class AuthService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userDataKey);
+    await prefs.remove('parent_id'); // Also remove parent_id
   }
 
   /// Get stored token
@@ -328,6 +357,7 @@ class AuthService {
         return UserData.fromJson(userDataMap as Map<String, dynamic>);
       } catch (e) {
         print('Error parsing user data: $e');
+        print('Stored user data string: $userDataString');
         return null;
       }
     }
@@ -337,8 +367,14 @@ class AuthService {
   /// Initialize authentication (call on app start)
   Future<void> init() async {
     final token = await getToken();
+    print(
+      '🔵 [AuthService] Initializing with token: ${token != null ? 'Token present' : 'No token'}',
+    );
     if (token != null) {
       _apiClient.setAuthToken(token);
+      print('🔵 [AuthService] Token set in API client');
+    } else {
+      print('🔵 [AuthService] No token found, user will need to login');
     }
   }
 }

@@ -39,8 +39,14 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
       );
 
       if (response.isSuccess && response.data != null) {
+        // Additional client-side filtering to ensure only children with matching parent ID are shown
+        final filteredChildren =
+            response.data!
+                .where((child) => child.parentId == widget.parentId)
+                .toList();
+
         setState(() {
-          _children = response.data!;
+          _children = filteredChildren;
         });
       } else {
         setState(() {

@@ -30,6 +30,9 @@ class ApiClient {
 
     if (includeAuth && _authToken != null) {
       headers['Authorization'] = 'Bearer $_authToken';
+      print('🔵 [ApiClient] Adding Authorization header');
+    } else if (includeAuth) {
+      print('⚠️ [ApiClient] Auth required but no token available');
     }
 
     return headers;
@@ -46,12 +49,27 @@ class ApiClient {
         '${ApiConstants.fullBaseUrl}$endpoint',
       ).replace(queryParameters: queryParameters);
 
+      print('🔵 [ApiClient] GET Request');
+      print('🔵 [ApiClient] URL: $uri');
+      print(
+        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
+      );
+
       final response = await _httpClient
           .get(uri, headers: _getHeaders(includeAuth: requiresAuth))
           .timeout(ApiConstants.connectionTimeout);
 
+      print('✅ [ApiClient] استلام الاستجابة');
+      print('✅ [ApiClient] Status Code: ${response.statusCode}');
+      print(
+        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
+      );
+
       return _handleResponse<T>(response);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [ApiClient] خطأ في GET: $e');
+      print('❌ [ApiClient] Error type: ${e.runtimeType}');
+      print('❌ [ApiClient] Stack trace: $stackTrace');
       return ApiResponse.error(_handleError(e));
     }
   }
@@ -88,9 +106,10 @@ class ApiClient {
       );
 
       return _handleResponse<T>(response);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [ApiClient] خطأ في POST: $e');
       print('❌ [ApiClient] Error type: ${e.runtimeType}');
+      print('❌ [ApiClient] Stack trace: $stackTrace');
       return ApiResponse.error(_handleError(e));
     }
   }
@@ -127,9 +146,10 @@ class ApiClient {
       );
 
       return _handleResponse<T>(response);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [ApiClient] خطأ في PUT: $e');
       print('❌ [ApiClient] Error type: ${e.runtimeType}');
+      print('❌ [ApiClient] Stack trace: $stackTrace');
       return ApiResponse.error(_handleError(e));
     }
   }
@@ -142,12 +162,27 @@ class ApiClient {
     try {
       final uri = Uri.parse('${ApiConstants.fullBaseUrl}$endpoint');
 
+      print('🔵 [ApiClient] DELETE Request');
+      print('🔵 [ApiClient] URL: $uri');
+      print(
+        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
+      );
+
       final response = await _httpClient
           .delete(uri, headers: _getHeaders(includeAuth: requiresAuth))
           .timeout(ApiConstants.connectionTimeout);
 
+      print('✅ [ApiClient] استلام الاستجابة');
+      print('✅ [ApiClient] Status Code: ${response.statusCode}');
+      print(
+        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
+      );
+
       return _handleResponse<T>(response);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [ApiClient] خطأ في DELETE: $e');
+      print('❌ [ApiClient] Error type: ${e.runtimeType}');
+      print('❌ [ApiClient] Stack trace: $stackTrace');
       return ApiResponse.error(_handleError(e));
     }
   }
@@ -174,9 +209,20 @@ class ApiClient {
     } else {
       try {
         final jsonData = jsonDecode(response.body);
-        final message = jsonData['message'] ?? 'حدث خطأ غير معروف';
+        // Check for different possible error message formats
+        final message =
+            jsonData['message'] ??
+            jsonData['detail'] ??
+            jsonData['error'] ??
+            'حدث خطأ غير معروف';
         return ApiResponse.error(message);
       } catch (e) {
+        // If we can't parse JSON, return the raw response body if it contains useful info
+        if (response.body.contains('database is locked')) {
+          return ApiResponse.error(
+            'قاعدة البيانات مشغولة. حاول مرة أخرى لاحقًا.',
+          );
+        }
         return ApiResponse.error('حدث خطأ غير معروف');
       }
     }
@@ -197,6 +243,7 @@ class ApiClient {
     } else if (errorString.contains('FormatException')) {
       return 'صيغة البيانات المستلمة غير صحيحة';
     } else {
+      // More detailed error reporting
       return 'حدث خطأ: $errorString';
     }
   }

@@ -1,7 +1,6 @@
 /// API Constants - All API endpoints and configurations
 class ApiConstants {
-  // Base URL - Django Development Server (Android Emulator)
-  // Use 10.0.2.2 to access localhost from Android Emulator
+  // Base URL - Django Development Server
   static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Full Base URL
@@ -20,8 +19,9 @@ class ApiConstants {
   static const String parentRegister = '/api/register/';
 
   // Child Endpoints
-  static const String childLogin = '/api/login/';
+  static const String childLogin = '/api/child/login/';
   static const String childRegister = '/api/children/';
+  static const String emergencyAlert = '/api/emergency/';
 
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 30);

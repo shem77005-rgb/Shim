@@ -72,10 +72,24 @@ class ChildService {
     try {
       print('🔵 [ChildService] بدء عملية إنشاء طفل');
       print('🔵 [ChildService] Parent ID: $parentId, Child Name: $name');
+      print('🔵 [ChildService] Child Email: $email, Age: $age');
 
-      // The parent should already be authenticated to make this request
-      // If the request succeeds, it means the parent is valid
-      // We'll rely on the backend to validate the parent-child relationship
+      // Validate parent ID before proceeding
+      if (parentId.isEmpty) {
+        print('❌ [ChildService] Parent ID is empty');
+        return ApiResponse.error(
+          'معرف الوالد غير صالح. الرجاء تسجيل الدخول مرة أخرى.',
+        );
+      }
+
+      print('🔵 [ChildService] Valid parent ID: $parentId');
+
+      // Warn if using default/test parent ID
+      if (parentId == '1') {
+        print(
+          '⚠️ [ChildService] Warning: Creating child with default parent ID',
+        );
+      }
 
       final request = ChildCreateRequest(
         parentId: parentId,
@@ -107,11 +121,13 @@ class ChildService {
         '🔵 [ChildService] استلام الاستجابة بعد: ${duration.inSeconds}.${duration.inMilliseconds % 1000}s',
       );
       print('🔵 [ChildService] Response success: ${response.isSuccess}');
+      print('🔵 [ChildService] Response data: ${response.data}');
 
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل بيانات الطفل...');
         final child = Child.fromJson(response.data);
         print('✅ [ChildService] Child ID: ${child.id}');
+        print('✅ [ChildService] Child Parent ID: ${child.parentId}');
         return ApiResponse.success(child);
       } else {
         print('❌ [ChildService] فشل: ${response.error}');
@@ -134,17 +150,30 @@ class ChildService {
       print('🔵 [ChildService] Request URL: /api/children/?parent=$parentId');
 
       final response = await _apiClient.get<List<dynamic>>(
-        '/api/children/?parent=$parentId',
+        '/api/children/?parent=$parentId', // Use 'parent' parameter as expected by API
         requiresAuth: true,
       );
 
+      print('🔵 [ChildService] Response received: ${response.isSuccess}');
+      print('🔵 [ChildService] Response data: ${response.data}');
+      print('🔵 [ChildService] Response error: ${response.error}');
+
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل قائمة الأطفال...');
+        print('✅ [ChildService] Raw response data: $response.data');
         final children =
             (response.data as List)
                 .map((item) => Child.fromJson(item as Map<String, dynamic>))
                 .toList();
         print('✅ [ChildService] عدد الأطفال: ${children.length}');
+
+        // Debug: Print each child's parent ID to verify filtering
+        for (var child in children) {
+          print(
+            '✅ [ChildService] Child ID: ${child.id}, Name: ${child.name}, Parent ID: "${child.parentId}"',
+          );
+        }
+
         return ApiResponse.success(children);
       } else {
         print('❌ [ChildService] فشل: ${response.error}');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:safechild_system/features/emergency/presentation/emergency_screen.dart';
 import '../../auth/data/services/auth_service.dart';
 import '../../../models/child_model.dart';
+import '../../../models/child_login_response.dart';
 
 class ChildLoginScreen extends StatefulWidget {
   const ChildLoginScreen({super.key});
