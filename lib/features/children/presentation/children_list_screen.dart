@@ -3,6 +3,7 @@ import '../../../services/child_service.dart';
 import '../../../core/api/api_response.dart';
 import '../../../models/child_model.dart';
 import 'edit_child_screen.dart';
+import '../../home/presentation/child_word_restrictions_screen.dart';
 
 class ChildrenListScreen extends StatefulWidget {
   final String parentId;
@@ -151,7 +152,7 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
               backgroundColor: Colors.blue.withOpacity(0.2),
               foregroundColor: Colors.blue,
             ),
-            title: Text(child.name), 
+            title: Text(child.name),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -159,20 +160,45 @@ class _ChildrenListScreenState extends State<ChildrenListScreen> {
                 Text('العمر: ${child.age} سنة'),
               ],
             ),
-            trailing: Text('تعديل'),
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditChildScreen(child: child),
-                ),
-              );
+            trailing: PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert),
+              onSelected: (String result) async {
+                if (result == 'edit') {
+                  final editResult = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditChildScreen(child: child),
+                    ),
+                  );
 
-              // If child was updated, refresh the list
-              if (result != null) {
-                _loadChildren();
-              }
-            },
+                  // If child was updated, refresh the list
+                  if (editResult != null) {
+                    _loadChildren();
+                  }
+                } else if (result == 'word_restrictions') {
+                  // Navigate to child word restrictions screen
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              ChildWordRestrictionsScreen(child: child),
+                    ),
+                  );
+                }
+              },
+              itemBuilder:
+                  (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'edit',
+                      child: Text('تعديل'),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'word_restrictions',
+                      child: Text('الكلمات المحظورة'),
+                    ),
+                  ],
+            ),
           ),
         );
       },

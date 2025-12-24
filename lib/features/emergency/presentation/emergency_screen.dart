@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/child_model.dart';
 import '../../../services/emergency_service.dart';
+import '../../../services/notification_service.dart';
 import '../../auth/data/services/auth_service.dart';
 import '../../children/presentation/child_login_screen.dart';
 
@@ -25,6 +26,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
   late final Animation<double> _scale;
 
   late final EmergencyService _emergencyService;
+  late final NotificationService _notificationService;
   // Use the singleton instance of AuthService
   final AuthService _authService = AuthService();
 
@@ -33,6 +35,9 @@ class _EmergencyScreenState extends State<EmergencyScreen>
     super.initState();
     // Initialize the emergency service with the authenticated API client
     _emergencyService = EmergencyService(apiClient: _authService.apiClient);
+    _notificationService = NotificationService(
+      apiClient: _authService.apiClient,
+    );
 
     _pulse = AnimationController(
       vsync: this,
@@ -128,6 +133,30 @@ class _EmergencyScreenState extends State<EmergencyScreen>
           childId: currentUser.id,
           parentId: parentId,
         );
+
+        // Also send a notification to the parent
+        final childName = widget.child?.name ?? currentUser.name;
+        print(
+          '🔵 [EmergencyScreen] Sending notification for child: $childName to parent: $parentId',
+        );
+
+        final notificationResponse = await _notificationService
+            .sendEmergencyNotification(
+              childName: childName,
+              parentId: parentId,
+            );
+
+        if (notificationResponse.isSuccess) {
+          print('✅ [EmergencyScreen] Notification sent successfully!');
+          debugPrint('✅ Emergency notification sent for child: $childName');
+        } else {
+          print(
+            '❌ [EmergencyScreen] Failed to send notification: ${notificationResponse.error}',
+          );
+          debugPrint(
+            '⚠️ Failed to send notification: ${notificationResponse.error}',
+          );
+        }
 
         if (response.isSuccess && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

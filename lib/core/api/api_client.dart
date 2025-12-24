@@ -205,6 +205,20 @@ class ApiClient {
     } else if (statusCode == 404) {
       return ApiResponse.error('البريد الألكتروني او كلمة السر غير صحيحة ');
     } else if (statusCode >= 500) {
+      // Log the actual server error for debugging
+      print('❌ [ApiClient] Server Error 500 - Response Body: ${response.body}');
+      try {
+        final jsonData = jsonDecode(response.body);
+        if (jsonData is Map<String, dynamic>) {
+          final message =
+              jsonData['detail'] ?? jsonData['error'] ?? jsonData['message'];
+          if (message != null) {
+            return ApiResponse.error('خطأ في الخادم: $message');
+          }
+        }
+      } catch (e) {
+        print('❌ [ApiClient] Failed to parse 500 error: $e');
+      }
       return ApiResponse.error('خطأ في الخادم. حاول مرة أخرى لاحقًا');
     } else {
       try {

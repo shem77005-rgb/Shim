@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">SafeChild</string>
     <string name="accessibility_description">
         الخدمة ضرورية لمراقبة التطبيقات المفتوحة والتحكم بوقت الاستخدام.
+    </string>
+    <string name="text_monitor_description">
+        خدمة مراقبة النصوص لحماية طفلك من كتابة أو استقبال محتوى غير لائق. تعمل هذه الخدمة بالتكامل مع الذكاء الاصطناعي لتحليل النصوص.
     </string>
 </resources>

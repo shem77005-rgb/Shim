@@ -615,9 +615,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
 
             const SizedBox(height: 16),
 
-            // <<< هنا أضفت أزرار الوصول لاستخدام التطبيقات وAccessibility >>>
-            // تظهر قبل عنوان "القيود" لتسهيل إعطاء الأذونات للوالد
-            const AccessButtons(),
             const SizedBox(height: 16),
 
             const Text(

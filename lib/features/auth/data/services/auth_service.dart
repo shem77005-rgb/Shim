@@ -298,6 +298,33 @@ class AuthService {
     }
   }
 
+  /// Refresh authentication token
+  Future<ApiResponse<AuthResponse>> refreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString(_refreshTokenKey);
+
+      if (refreshToken == null || refreshToken.isEmpty) {
+        return ApiResponse.error('No refresh token available');
+      }
+
+      final response = await _apiClient.post<dynamic>(
+        ApiConstants.refreshToken,
+        body: {'refresh': refreshToken},
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final authResponse = AuthResponse.fromJson(response.data);
+        await _saveAuthData(authResponse);
+        return ApiResponse.success(authResponse);
+      } else {
+        return ApiResponse.error(response.error ?? 'Failed to refresh token');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error refreshing token: ${e.toString()}');
+    }
+  }
+
   /// Save authentication data to local storage
   Future<void> _saveAuthData(AuthResponse authResponse) async {
     final prefs = await SharedPreferences.getInstance();
@@ -328,6 +355,12 @@ class AuthService {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
+  }
+
+  /// Get stored refresh token
+  Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_refreshTokenKey);
   }
 
   /// Check if user is authenticated

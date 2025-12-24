@@ -24,6 +24,19 @@ class ApiConstants {
   static const String childUpdate = '/api/children/'; // PUT /api/children/{id}/
   static const String emergencyAlert = '/api/emergency/';
 
+  // Notifications Endpoints
+  static const String notifications = '/api/notifications/';
+
+  // Writing Check Endpoint (AI Text Analysis)
+  static const String writingCheck = '/api/v1/writing-check/';
+
+  // Restricted Words Endpoints
+  static const String restrictedWords = '/api/v1/restricted-words/';
+  static const String restrictedWordsByChild =
+      '/api/v1/restricted-words/?child_id=';
+  static const String restrictedWordsRemoveByChild =
+      '/api/v1/restricted-words/child/'; // Use: {restrictedWordsRemoveByChild}{childId}/remove/
+
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

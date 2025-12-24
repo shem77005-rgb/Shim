@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
 import 'child_edit_screen.dart';
@@ -7,7 +8,9 @@ import 'package:safechild_system/features/notifications/presentation/notificatio
 
 // Import the new Child model and service
 import '../../../models/child_model.dart';
+import '../../../models/notification_model.dart';
 import '../../../services/child_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../core/api/api_response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../features/auth/data/services/auth_service.dart';
@@ -260,33 +263,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         child: const _InfoStatCard(
-                          title: 'تلقي إشعارات الطوارئ',
-                          subtitle: 'لا يوجد جديد',
-                          icon: Icons.priority_high_rounded,
-                          color: Color(0xFFE74C3C),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // الآن: البطاقة الثانية - عند الضغط تفتح شاشة الإشعارات (NotificationsScreen)
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const NotificationsScreen(),
-                            ),
-                          );
-                        },
-                        child: const _InfoStatCard(
                           title: 'تنبيهات جديدة',
-                          subtitle: 'عرض التنبيهات recent',
-                          icon: Icons.verified_rounded,
+                          subtitle: 'عرض إشعارات ',
+                          icon: Icons.notifications_active_rounded,
                           color: Color(0xFF27AE60),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                   ],
                 ),
               ),
@@ -935,9 +919,121 @@ class _BottomNavBar extends StatelessWidget {
   }
 }
 
-/// صفحة مستقلة لعرض "تنبيهات جديدة" (مبدئية، غير مرتبطة بصفحة الطوارئ)
-class NewAlertsScreen extends StatelessWidget {
+/// صفحة مستقلة لعرض "تنبيهات جديدة" - تعرض الإشعارات من API
+class NewAlertsScreen extends StatefulWidget {
   const NewAlertsScreen({super.key});
+
+  @override
+  State<NewAlertsScreen> createState() => _NewAlertsScreenState();
+}
+
+class _NewAlertsScreenState extends State<NewAlertsScreen> {
+  List<NotificationModel> _notifications = [];
+  bool _isLoading = true;
+  String _error = '';
+  String _parentId = '';
+  late NotificationService _notificationService;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationService = NotificationService(
+      apiClient: _authService.apiClient,
+    );
+    _initializeAndLoad();
+  }
+
+  Future<void> _initializeAndLoad() async {
+    await _loadParentId();
+    await _loadNotifications();
+  }
+
+  Future<void> _loadParentId() async {
+    final user = await _authService.getCurrentUser();
+    if (user != null && user.userType == 'parent') {
+      setState(() {
+        _parentId = user.id;
+      });
+      print('🔵 [NewAlertsScreen] Parent ID loaded: $_parentId');
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    try {
+      // Get notifications filtered by parent ID
+      final response = await _notificationService.getNotifications(
+        parentId: _parentId,
+      );
+      if (response.isSuccess && response.data != null) {
+        setState(() {
+          _notifications = response.data!;
+          _isLoading = false;
+        });
+        print(
+          '✅ [NewAlertsScreen] Loaded ${_notifications.length} notifications',
+        );
+      } else {
+        setState(() {
+          _error = response.error ?? 'فشل في تحميل الإشعارات';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'حدث خطأ: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) {
+      return 'الآن';
+    } else if (difference.inMinutes < 60) {
+      return 'منذ ${difference.inMinutes} دقيقة';
+    } else if (difference.inHours < 24) {
+      return 'منذ ${difference.inHours} ساعة';
+    } else if (difference.inDays < 7) {
+      return 'منذ ${difference.inDays} يوم';
+    } else {
+      return DateFormat('yyyy/MM/dd - HH:mm').format(timestamp);
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'emergency':
+        return Colors.red;
+      case 'warning':
+        return Colors.orange;
+      case 'system':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'emergency':
+        return Icons.warning_amber_rounded;
+      case 'warning':
+        return Icons.info_outline;
+      case 'system':
+        return Icons.notifications_outlined;
+      default:
+        return Icons.notifications;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -949,15 +1045,141 @@ class NewAlertsScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 0.6,
-        ),
-        body: const SafeArea(
-          child: Center(
-            child: Text(
-              'هنا ستعرض "التنبيهات الجديدة".\nحالياً صفحة بسيطة مستقلة عن الطوارئ.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54, fontSize: 16),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadNotifications,
             ),
-          ),
+          ],
+        ),
+        body: SafeArea(
+          child:
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error.isNotEmpty
+                  ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          _error,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadNotifications,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  )
+                  : _notifications.isEmpty
+                  ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'لا توجد تنبيهات جديدة',
+                          style: TextStyle(color: Colors.grey, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  )
+                  : RefreshIndicator(
+                    onRefresh: _loadNotifications,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        final categoryColor = _getCategoryColor(
+                          notification.category,
+                        );
+                        final categoryIcon = _getCategoryIcon(
+                          notification.category,
+                        );
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: categoryColor.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: categoryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    categoryIcon,
+                                    color: categoryColor,
+                                    size: 28,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        notification.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      if (notification
+                                          .description
+                                          .isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          notification.description,
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _formatTimestamp(
+                                          notification.timestamp,
+                                        ),
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
         ),
       ),
     );
