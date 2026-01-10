@@ -355,14 +355,14 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 import 'package:safechild_system/features/home/presentation/writing_restrictions_screen.dart';
 import 'package:safechild_system/features/report/presentation/report_screen.dart';
 
 import 'emergency_setting_screen.dart';
 import 'block_sites_screen.dart';
 
-import 'package:safechild_system/widgets/access_buttons.dart';
+// ✅ شاشة الأب الجديدة
+import 'parent_apps_policy_screen.dart';
 
 // Import child service and models
 import '../../../services/child_service.dart';
@@ -381,7 +381,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
   static const Color navy = Color(0xFF0A2E66);
   static const Color info = Color(0xFFE8F3FF);
 
-  // Load children dynamically from the database
   List<Child> _children = [];
   bool _isLoadingChildren = true;
   String _parentId = '';
@@ -400,82 +399,56 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
 
   Future<void> _loadParentAndChildren() async {
     try {
-      print('🔵 [PolicySettings] Loading parent ID and children');
+      debugPrint('🟦 [PolicySettings] Loading parent ID and children');
 
-      // Get parent ID from authenticated user
       final user = await _authService.getCurrentUser();
       if (user != null && user.userType == 'parent') {
-        setState(() {
-          _parentId = user.id;
-        });
-        print('🔵 [PolicySettings] Parent ID: $_parentId');
+        setState(() => _parentId = user.id);
 
-        // Load children for this parent
+        debugPrint('🟦 [PolicySettings] Parent ID: $_parentId');
         await _loadChildren();
       } else {
-        print('⚠️ [PolicySettings] Current user is not a parent');
-        setState(() {
-          _isLoadingChildren = false;
-        });
+        debugPrint('⚠️ [PolicySettings] Current user is not a parent');
+        setState(() => _isLoadingChildren = false);
       }
     } catch (e) {
-      print('❌ [PolicySettings] Error loading parent/children: $e');
-      setState(() {
-        _isLoadingChildren = false;
-      });
+      debugPrint('❌ [PolicySettings] Error loading parent/children: $e');
+      setState(() => _isLoadingChildren = false);
     }
   }
 
   Future<void> _loadChildren() async {
     if (_parentId.isEmpty) {
-      print('⚠️ [PolicySettings] Cannot load children: Parent ID is empty');
-      setState(() {
-        _isLoadingChildren = false;
-      });
+      debugPrint('⚠️ [PolicySettings] Cannot load children: Parent ID is empty');
+      setState(() => _isLoadingChildren = false);
       return;
     }
 
     try {
-      print('🔵 [PolicySettings] Fetching children for parent: $_parentId');
-      final response = await _childService.getParentChildren(
-        parentId: _parentId,
-      );
+      debugPrint('🟦 [PolicySettings] Fetching children for parent: $_parentId');
+      final response = await _childService.getParentChildren(parentId: _parentId);
 
       if (response.isSuccess && response.data != null) {
-        print('✅ [PolicySettings] Loaded ${response.data!.length} children');
-
-        // Client-side filtering for safety
         final filteredChildren =
-            response.data!.where((child) {
-              return child.parentId == _parentId;
-            }).toList();
-
-        print(
-          '🔵 [PolicySettings] After filtering: ${filteredChildren.length} children',
-        );
+        response.data!.where((child) => child.parentId == _parentId).toList();
 
         setState(() {
           _children = filteredChildren;
           _isLoadingChildren = false;
+          _selectedChild = 0;
         });
 
-        // Log each child
-        for (var child in _children) {
-          print(
-            '🔵 [PolicySettings] Child: ${child.name} (ID: ${child.id}, Parent: ${child.parentId})',
-          );
+        debugPrint('✅ [PolicySettings] Loaded ${_children.length} children');
+        for (final c in _children) {
+          debugPrint('🟦 [PolicySettings] Child: ${c.name} id=${c.id} parent=${c.parentId}');
         }
       } else {
-        print('❌ [PolicySettings] Failed to load children: ${response.error}');
-        setState(() {
-          _isLoadingChildren = false;
-        });
+        debugPrint('❌ [PolicySettings] Failed to load children: ${response.error}');
+        setState(() => _isLoadingChildren = false);
       }
     } catch (e) {
-      print('❌ [PolicySettings] Error loading children: $e');
-      setState(() {
-        _isLoadingChildren = false;
-      });
+      debugPrint('❌ [PolicySettings] Error loading children: $e');
+      setState(() => _isLoadingChildren = false);
     }
   }
 
@@ -503,8 +476,7 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
     _Restriction(
       title: 'قيود الكتابة',
       asset: 'assets/images/keyboard.png',
-      desc:
-          'منع أو مراجعة نصوص حساسة باستخدام الذكاء الاصطناعي على مستوى النظام.',
+      desc: 'منع أو مراجعة نصوص حساسة باستخدام الذكاء الاصطناعي على مستوى النظام.',
     ),
     _Restriction(
       title: 'التقارير',
@@ -515,14 +487,15 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasChild = !_isLoadingChildren && _children.isNotEmpty;
+    final selectedChild = hasChild ? _children[_selectedChild] : null;
+
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
         centerTitle: true,
-
-        // سهم رجوع لليمين (ملائم للـ RTL)
         automaticallyImplyLeading: false,
         leading: IconButton(
           icon: const Icon(Icons.chevron_left, color: Colors.black87),
@@ -553,7 +526,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
             ),
             const SizedBox(height: 10),
 
-            // Show loading indicator while fetching children
             if (_isLoadingChildren)
               const Center(
                 child: Padding(
@@ -561,7 +533,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                   child: CircularProgressIndicator(),
                 ),
               )
-            // Show message if no children found
             else if (_children.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -583,7 +554,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                   ],
                 ),
               )
-            // Show children chips
             else
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -603,9 +573,7 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                         selected: selected,
                         selectedColor: navy,
                         backgroundColor: Colors.white,
-                        side: BorderSide(
-                          color: selected ? navy : Colors.black12,
-                        ),
+                        side: BorderSide(color: selected ? navy : Colors.black12),
                         onSelected: (_) => setState(() => _selectedChild = i),
                       ),
                     );
@@ -614,9 +582,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
               ),
 
             const SizedBox(height: 16),
-
-            const SizedBox(height: 16),
-
             const Text(
               'القيود',
               style: TextStyle(
@@ -627,72 +592,62 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
             ),
             const SizedBox(height: 8),
 
-            // عرض البنود
-            ..._items.map(
-              (item) => _RestrictionTile(
+            ..._items.map((item) {
+              return _RestrictionTile(
                 item: item,
                 onOpen: () {
-                  // الآن: افتح شاشة مخصصة لكل بند حسب العنوان
                   if (item.title == 'الطوارئ') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const EmergencySettingScreen(),
-                      ),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencySettingScreen()));
                     return;
                   }
 
                   if (item.title == 'حظر المواقع') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const BlockSitesScreen(),
-                      ),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockSitesScreen()));
                     return;
                   }
 
                   if (item.title == 'مدة استخدام التطبيقات') {
+                    if (selectedChild == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اختر طفل أولاً')));
+                      return;
+                    }
+
+                    final childIdInt = int.tryParse(selectedChild.id) ?? 0;
+                    if (childIdInt <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('child_id غير صالح')));
+                      return;
+                    }
+
+                    debugPrint('🟪 [PolicySettings] Open ParentAppsPolicyScreen childId=$childIdInt');
+
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const AppsScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => ParentAppsPolicyScreen(
+                          childId: childIdInt,
+                          childName: selectedChild.name,
+                          apiClient: _authService.apiClient, // ✅ هذا المهم
+                        ),
+                      ),
                     );
                     return;
                   }
 
                   if (item.title == 'قيود الكتابة') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const WritingRestrictionsScreen(),
-                      ),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const WritingRestrictionsScreen()));
                     return;
                   }
 
-                  // **التعامل مع زر التقارير**
                   if (item.title == 'التقارير') {
-                    // 1. توليد الملخص وتحديث البيانات الوهمية
                     placeholderData.summary = generateSummary(placeholderData);
-
-                    // 2. فتح شاشة التقارير
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ReportScreen(data: placeholderData),
-                      ),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen(data: placeholderData)));
                     return;
                   }
 
-                  // افتراضي: رسالة مؤقتة
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('فتح إعداد: ${item.title}')),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فتح إعداد: ${item.title}')));
                 },
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),
@@ -708,19 +663,12 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
 
 String? generateSummary(ReportData placeholderData) {}
 
-// ====== نماذج وعناصر مساعدة ======
-
 class _Restriction {
   final String title;
   final String asset;
   final String desc;
   bool showHelp;
-  _Restriction({
-    required this.title,
-    required this.asset,
-    required this.desc,
-    this.showHelp = false,
-  });
+  _Restriction({required this.title, required this.asset, required this.desc, this.showHelp = false});
 }
 
 class _RestrictionTile extends StatefulWidget {
@@ -760,36 +708,20 @@ class _RestrictionTileState extends State<_RestrictionTile> {
                   width: 26,
                   height: 26,
                   fit: BoxFit.contain,
-                  // لو الصورة ناقصة ما يخرب التصميم
-                  errorBuilder:
-                      (_, __, ___) =>
-                          const Icon(Icons.image_not_supported_outlined),
+                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined),
                 ),
               ),
               title: Text(
                 widget.item.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900, // خط واضح
-                  color: Color(0xFF28323B),
-                ),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF28323B)),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // زر التعليمة (i)
                   IconButton(
                     tooltip: 'تعليمات',
-                    icon: Icon(
-                      widget.item.showHelp
-                          ? Icons.info_rounded
-                          : Icons.info_outline_rounded,
-                      color: navy,
-                    ),
-                    onPressed:
-                        () => setState(
-                          () => widget.item.showHelp = !widget.item.showHelp,
-                        ),
+                    icon: Icon(widget.item.showHelp ? Icons.info_rounded : Icons.info_outline_rounded, color: navy),
+                    onPressed: () => setState(() => widget.item.showHelp = !widget.item.showHelp),
                   ),
                   IconButton(
                     tooltip: 'فتح',
@@ -799,14 +731,9 @@ class _RestrictionTileState extends State<_RestrictionTile> {
                 ],
               ),
             ),
-
-            // الوصف يظهر/يختفي
             AnimatedCrossFade(
               duration: const Duration(milliseconds: 200),
-              crossFadeState:
-                  widget.item.showHelp
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
+              crossFadeState: widget.item.showHelp ? CrossFadeState.showSecond : CrossFadeState.showFirst,
               firstChild: const SizedBox.shrink(),
               secondChild: Container(
                 width: double.infinity,
@@ -819,12 +746,7 @@ class _RestrictionTileState extends State<_RestrictionTile> {
                 ),
                 child: Text(
                   widget.item.desc,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    height: 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2A34),
-                  ),
+                  style: const TextStyle(fontSize: 13.5, height: 1.5, fontWeight: FontWeight.w600, color: Color(0xFF1F2A34)),
                 ),
               ),
             ),
