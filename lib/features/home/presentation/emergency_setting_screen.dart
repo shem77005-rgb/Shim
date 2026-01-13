@@ -26,23 +26,41 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0,2))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 18)),
+                    const CircleAvatar(
+                      radius: 16,
+                      child: Icon(Icons.person, size: 18),
+                    ),
                     const Spacer(),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.shield_rounded, color: navy, size: 22),
                         const SizedBox(width: 8),
-                        const Text('Safe Child System',
-                            style: TextStyle(fontWeight: FontWeight.w700, color: navy)),
+                        const Text(
+                          'Safe Child System',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: navy,
+                          ),
+                        ),
                       ],
                     ),
                     const Spacer(),
-                    IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined), color: Colors.black54),
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.settings_outlined),
+                      color: Colors.black54,
+                    ),
                   ],
                 ),
               ),
@@ -50,13 +68,16 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
               // ==== هنا: سطر العنوان مع زر الخروج في نهاية السطر ====
               // نضع Text مع Expanded ليأخذ المساحة، ثم زر الخروج في النهاية (يسار)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
                 child: Row(
                   children: [
                     // العنوان (محاذاة للنص لليمين)
                     Expanded(
                       child: Text(
-                        'زر الطوارئ',
+                        'زر التنبية',
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           fontSize: 22,
@@ -67,12 +88,12 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
                     ),
 
                     // زر الخروج في نهاية السطر (سيظهر على اليسار لأن الصفحة RTL)
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      color: Colors.black87,
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip: 'رجوع',
-                    ),
+                    // IconButton(
+                    //   icon: const Icon(Icons.chevron_left),
+                    //   color: Colors.black87,
+                    //   onPressed: () => Navigator.of(context).pop(),
+                    //   tooltip: 'رجوع',
+                    // ),
                   ],
                 ),
               ),
@@ -81,10 +102,15 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 2,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -111,12 +137,15 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
                               Text(
                                 'تفعيل الخدمة',
                                 textAlign: TextAlign.right,
-                                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
                               ),
                               SizedBox(height: 6),
                               Text(
                                 'يسمح للطفل بإرسال نداء استغاثة سريع '
-                                'للوالدين مع تحديد الموقع الحالي',
+                                'للوالدين ',
                                 textAlign: TextAlign.right,
                                 style: TextStyle(
                                   color: Colors.black54,
@@ -141,7 +170,10 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     color: const Color(0xFFFFF4F4),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: const Text(
                       'ملاحظة: استخدم هذا الزر في حالات الطوارئ فقط. '
                       'بالضغط على هذا الزر سيتم إشعار ولي الأمر فوريًا ولا يمكن التراجع بعد التنفيذ.',
@@ -156,7 +188,10 @@ class _EmergencySettingScreenState extends State<EmergencySettingScreen> {
 
               // حالة الخدمة في الأسفل
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
                 child: Row(
                   children: [
                     Expanded(

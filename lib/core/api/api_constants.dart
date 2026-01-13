@@ -21,11 +21,16 @@ class ApiConstants {
   // Child Endpoints
   static const String childLogin = '/api/child/login/';
   static const String childRegister = '/api/children/';
-  static const String childUpdate = '/api/children/'; // PUT /api/children/{id}/
+  static const String childUpdate = '/api/children/';
   static const String emergencyAlert = '/api/emergency/';
 
   // Notifications Endpoints
+  static const String notificationsSend = '/api/notifications/send-to-parent/';
   static const String notifications = '/api/notifications/';
+  static const String deleteNotificationById =
+      '/api/notifications/'; // Use: {deleteNotificationById}{id}/
+  static const String deleteNotificationsByParent =
+      '/api/notifications/delete-by-parent/'; // Use: {deleteNotificationsByParent}{parentId}/
 
   // Writing Check Endpoint (AI Text Analysis)
   static const String writingCheck = '/api/v1/writing-check/';
@@ -36,6 +41,19 @@ class ApiConstants {
       '/api/v1/restricted-words/?child_id=';
   static const String restrictedWordsRemoveByChild =
       '/api/v1/restricted-words/child/'; // Use: {restrictedWordsRemoveByChild}{childId}/remove/
+
+  // Geographical Restrictions Endpoints
+  static const String geoZones = '/api/geo-zones/';
+  static const String childLocations = '/api/locations/';
+  static const String childLocationByChild =
+      '/api/locations/child/'; // Use: {childLocationByChild}{childId}/
+  static const String childLocationHistory =
+      '/api/locations/child/'; // Use: {childLocationHistory}{childId}/history
+  static const String geoAlerts = '/api/geo-alerts/';
+  static const String geoAlertsByChild =
+      '/api/geo-alerts/child/'; // Use: {geoAlertsByChild}{childId}/
+  static const String recentGeoAlerts =
+      '/api/geo-alerts/child/'; // Use: {recentGeoAlerts}{childId}/recent
 
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 30);

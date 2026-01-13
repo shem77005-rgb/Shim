@@ -33,6 +33,54 @@ class ChildService {
         requiresAuth: true,
       );
 
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.get<List<dynamic>>(
+            '/api/parents/', // You might need to adjust this endpoint
+            requiresAuth: true,
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            // Check if parentId exists in the list of parents
+            final parents = retryResponse.data as List;
+            final parentExists = parents.any(
+              (parent) =>
+                  (parent is Map<String, dynamic> &&
+                      parent['id']?.toString() == parentId) ||
+                  (parent is Map &&
+                      parent.containsKey('id') &&
+                      parent['id']?.toString() == parentId),
+            );
+
+            print('✅ [ChildService] نتيجة التحقق: $parentExists');
+            return ApiResponse.success(parentExists);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(
+              retryResponse.error ?? 'فشل التحقق من وجود الحساب الأب',
+            );
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
       if (response.isSuccess && response.data != null) {
         // Check if parentId exists in the list of parents
         final parents = response.data as List;
@@ -122,6 +170,53 @@ class ChildService {
       );
       print('🔵 [ChildService] Response success: ${response.isSuccess}');
 
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.post<dynamic>(
+            '/api/children/',
+            body: request.toJson(),
+            requiresAuth: true,
+          );
+
+          final retryEndTime = DateTime.now();
+          final retryDuration = retryEndTime.difference(endTime);
+          print(
+            '🔵 [ChildService] Retry response after: ${retryDuration.inSeconds}.${retryDuration.inMilliseconds % 1000}s',
+          );
+          print(
+            '🔵 [ChildService] Retry response success: ${retryResponse.isSuccess}',
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            print('✅ [ChildService] تحليل بيانات الطفل...');
+            final child = Child.fromJson(retryResponse.data);
+            print('✅ [ChildService] Child ID: ${child.id}');
+            return ApiResponse.success(child);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(retryResponse.error ?? 'فشل إنشاء الطفل');
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل بيانات الطفل...');
         final child = Child.fromJson(response.data);
@@ -157,6 +252,78 @@ class ChildService {
       print(
         '🔵 [ChildService] Response received - Success: ${response.isSuccess}',
       );
+
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.get<List<dynamic>>(
+            url,
+            requiresAuth: true,
+          );
+
+          print(
+            '🔵 [ChildService] Retry response received - Success: ${retryResponse.isSuccess}',
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            print('✅ [ChildService] تحليل قائمة الأطفال...');
+            print('✅ [ChildService] Raw response data: ${retryResponse.data}');
+            print(
+              '✅ [ChildService] Response data type: ${retryResponse.data.runtimeType}',
+            );
+            print(
+              '✅ [ChildService] Response data length: ${(retryResponse.data as List).length}',
+            );
+
+            final children =
+                (retryResponse.data as List).map((item) {
+                  print('🔵 [ChildService] Processing item: $item');
+                  return Child.fromJson(item as Map<String, dynamic>);
+                }).toList();
+            print('✅ [ChildService] عدد الأطفال: ${children.length}');
+
+            // Debug: Print each child's parent ID to verify filtering
+            print(
+              '🔵 [ChildService] Verifying parent IDs for requested parent: $parentId',
+            );
+            for (var child in children) {
+              final matches = child.parentId == parentId;
+              print(
+                '✅ [ChildService] Child ID: ${child.id}, Name: ${child.name}, Parent ID: ${child.parentId}, Matches: $matches',
+              );
+              if (!matches) {
+                print(
+                  '⚠️ [ChildService] WARNING: Backend returned child with different parent ID! Expected: $parentId, Got: ${child.parentId}',
+                );
+              }
+            }
+
+            return ApiResponse.success(children);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(
+              retryResponse.error ?? 'فشل الحصول على قائمة الأطفال',
+            );
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
 
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل قائمة الأطفال...');
@@ -214,6 +381,48 @@ class ChildService {
         requiresAuth: true,
       );
 
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.get<List<dynamic>>(
+            '/api/children/',
+            requiresAuth: true,
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            print('✅ [ChildService] تحليل قائمة الأطفال...');
+            final children =
+                (retryResponse.data as List)
+                    .map((item) => Child.fromJson(item as Map<String, dynamic>))
+                    .toList();
+            print('✅ [ChildService] عدد الأطفال: ${children.length}');
+            return ApiResponse.success(children);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(
+              retryResponse.error ?? 'فشل الحصول على قائمة الأطفال',
+            );
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل قائمة الأطفال...');
         final children =
@@ -244,6 +453,44 @@ class ChildService {
         '/api/children/$childId/',
         requiresAuth: true,
       );
+
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.get<dynamic>(
+            '/api/children/$childId/',
+            requiresAuth: true,
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            print('✅ [ChildService] تحليل بيانات الطفل...');
+            final child = Child.fromJson(retryResponse.data);
+            return ApiResponse.success(child);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(
+              retryResponse.error ?? 'فشل الحصول على بيانات الطفل',
+            );
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
 
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل بيانات الطفل...');
@@ -302,6 +549,45 @@ class ChildService {
         requiresAuth: true,
       );
 
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.put<dynamic>(
+            '${ApiConstants.childUpdate}$childId/',
+            body: updateData,
+            requiresAuth: true,
+          );
+
+          if (retryResponse.isSuccess && retryResponse.data != null) {
+            print('✅ [ChildService] تحليل بيانات الطفل المحدثة...');
+            final child = Child.fromJson(retryResponse.data);
+            return ApiResponse.success(child);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(
+              retryResponse.error ?? 'فشل تحديث بيانات الطفل',
+            );
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
       if (response.isSuccess && response.data != null) {
         print('✅ [ChildService] تحليل بيانات الطفل المحدثة...');
         final child = Child.fromJson(response.data);
@@ -327,6 +613,41 @@ class ChildService {
         '/api/children/$childId/',
         requiresAuth: true,
       );
+
+      if (response.error?.contains('انتهت الجلسة') == true ||
+          response.error?.contains('Session ended') == true) {
+        print(
+          '🔒 [ChildService] Authentication failed, attempting token refresh',
+        );
+
+        // Try to refresh the token
+        final authService = AuthService();
+        final refreshResponse = await authService.refreshToken();
+
+        if (refreshResponse.isSuccess) {
+          print(
+            '✅ [ChildService] Token refreshed successfully, retrying request',
+          );
+          // Retry the request with the new token
+          final retryResponse = await _apiClient.delete<void>(
+            '/api/children/$childId/',
+            requiresAuth: true,
+          );
+
+          if (retryResponse.isSuccess) {
+            print('✅ [ChildService] تم حذف الطفل بنجاح');
+            return ApiResponse.success(null);
+          } else {
+            print('❌ [ChildService] Retry failed: ${retryResponse.error}');
+            return ApiResponse.error(retryResponse.error ?? 'فشل حذف الطفل');
+          }
+        } else {
+          print(
+            '❌ [ChildService] Token refresh failed: ${refreshResponse.error}',
+          );
+          return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
 
       if (response.isSuccess) {
         print('✅ [ChildService] تم حذف الطفل بنجاح');

@@ -33,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String _parentId = '';
   bool _isLoading = false;
 
+  int _currentIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -237,12 +239,45 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Directionality(
           textDirection: TextDirection.rtl,
-          child: Column(
-            children: [
-              const _TopBar(),
-              const SizedBox(height: 10),
-              const _SearchField(),
+          child: _getCurrentScreen(),
+        ),
+      ),
+      bottomNavigationBar: _BottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+      ),
+    );
+  }
 
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  Widget _getCurrentScreen() {
+    switch (_currentIndex) {
+      case 0: // الرئيسية
+        return _buildMainContent();
+      case 1: // الإشعارات
+        return const NewAlertsScreen();
+   
+      default:
+        return _buildMainContent();
+    }
+  }
+
+  Widget _buildMainContent() {
+    return Column(
+      children: [
+        const _TopBar(),
+        const SizedBox(height: 10),
+      
+
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            children: [
               // بطاقات إحصائية مختصرة
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -270,110 +305,91 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
                   ],
                 ),
               ),
-
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: [
-                    // عنوان القسم + زر إضافة طفل
-                    Row(
-                      children: [
-                        const Text(
-                          'حسابات الأبناء',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: darkTxt,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _openAddChildSheet,
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('إضافة طفل'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Color.fromRGBO(255, 255, 255, 1),
-                            backgroundColor: const Color(0xFF27AE60),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                          ),
-                        ),
-                      ],
+              // عنوان القسم + زر إضافة طفل
+              Row(
+                children: [
+                  const Text(
+                    'حسابات الأبناء',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: darkTxt,
                     ),
-                    const SizedBox(height: 8),
-
-                    // Show loading indicator
-                    if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    // لو القائمة فارغة نعرض بطاقة فارغة
-                    else if (_children.isEmpty)
-                      const _EmptyCard(
-                        title: 'لا توجد حسابات أبناء بعد',
-                        subtitle: 'اضغط على زر "إضافة طفل" لإضافة أول حساب',
-                      )
-                    else
-                      Material(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _children.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (_, i) {
-                            final c = _children[i];
-                            return ListTile(
-                              leading: const Icon(Icons.child_care_outlined),
-                              title: Text(c.name),
-                              subtitle: Text('${c.age} years old'),
-                              trailing: TextButton(
-                                onPressed: () async {
-                                  final updated = await Navigator.push<Child>(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ChildEditScreen(child: c),
-                                    ),
-                                  );
-                                  if (updated != null) {
-                                    setState(() => _children[i] = updated);
-                                    // Check if context is still mounted before showing snackbar
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('تم حفظ التعديلات'),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                child: const Text('تعديل'),
-                              ),
-                            );
-                          },
-                        ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _openAddChildSheet,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('إضافة طفل'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Color.fromRGBO(255, 255, 255, 1),
+                      backgroundColor: const Color(0xFF27AE60),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-
-                    const SizedBox(height: 14),
-                    const _SectionTitle(text: 'إدارة المحتوى'),
-                    const _ContentModerationCard(),
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+
+              // قائمة الأطفال
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _children.isEmpty
+                  ? const _EmptyCard(
+                    title: 'لا توجد أبناء',
+                    subtitle: 'سيظهر الأطفال الذين تمت إضافتهم هنا',
+                  )
+                  : Column(
+                    children: [..._children.map((c) => _buildChildCard(c))],
+                  ),
+              const SizedBox(height: 16),
+              const _ContentModerationCard(),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildProfileContent() {
+    return const Center(child: Text('ملف المستخدم'));
+  }
+
+  Widget _buildChildCard(Child c) {
+    return Material(
+      color: Colors.white,
+      child: ListTile(
+        leading: const Icon(Icons.child_care_outlined),
+        title: Text(c.name),
+        subtitle: Text('${c.age} years old'),
+        trailing: TextButton(
+          onPressed: () async {
+            final updated = await Navigator.push<Child>(
+              context,
+              MaterialPageRoute(builder: (_) => ChildEditScreen(child: c)),
+            );
+            if (updated != null) {
+              setState(() {
+                final index = _children.indexWhere((child) => child.id == c.id);
+                if (index != -1) {
+                  _children[index] = updated;
+                }
+              });
+              // Check if context is still mounted before showing snackbar
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم حفظ التعديلات')),
+                );
+              }
+            }
+          },
+          child: const Text('تعديل'),
+        ),
       ),
-      bottomNavigationBar: const _BottomNavBar(),
     );
   }
 
@@ -894,13 +910,16 @@ class _EmptyCard extends StatelessWidget {
 }
 
 class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar();
+  const _BottomNavBar({required this.currentIndex, required this.onTap});
+  final int currentIndex;
+  final Function(int) onTap;
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      currentIndex: 0,
-      onTap: (_) {},
+      currentIndex: currentIndex,
+      onTap: onTap,
+      type: BottomNavigationBarType.fixed,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_rounded),
@@ -1035,6 +1054,177 @@ class _NewAlertsScreenState extends State<NewAlertsScreen> {
     }
   }
 
+  void _showDeleteConfirmationDialog(NotificationModel notification) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text('تأكيد الحذف'),
+            content: const Text('هل أنت متأكد من رغبتك في حذف هذا التنبيه؟'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close dialog
+                },
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close dialog
+                  await _deleteSingleNotification(notification);
+                },
+                child: const Text('حذف', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteSingleNotification(NotificationModel notification) async {
+    // Remove the notification from the UI immediately for better UX
+    final notificationIndex = _notifications.indexWhere(
+      (n) => n.id == notification.id,
+    );
+    if (notificationIndex != -1) {
+      final removedNotification = _notifications.removeAt(notificationIndex);
+
+      // Show immediate feedback
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('جاري حذف التنبيه...')));
+      }
+
+      setState(() {}); // Update UI immediately
+
+      try {
+        final response = await _notificationService.deleteNotificationById(
+          notificationId: notification.id,
+        );
+        if (response.isSuccess) {
+          print('✅ Notification ${notification.id} deleted successfully');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم حذف التنبيه بنجاح')),
+            );
+          }
+        } else {
+          print('❌ Failed to delete notification: ${response.error}');
+          // If deletion failed, restore the notification
+          _notifications.insert(notificationIndex, removedNotification);
+          setState(() {});
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('فشل في حذف التنبيه: ${response.error}')),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error deleting notification: $e');
+        // Restore the notification if there was an error
+        _notifications.insert(notificationIndex, removedNotification);
+        setState(() {});
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ أثناء الحذف: ${e.toString()}')),
+          );
+        }
+      }
+    }
+  }
+
+  void _showBulkDeleteConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text('تأكيد الحذف الجماعي'),
+            content: const Text('هل أنت متأكد من رغبتك في حذف جميع التنبيهات؟'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close dialog
+                },
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Close dialog
+                  await _deleteAllNotifications();
+                },
+                child: const Text(
+                  'حذف الكل',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAllNotifications() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_parentId.isNotEmpty) {
+        final response = await _notificationService.deleteNotificationsByParent(
+          parentId: _parentId,
+        );
+        if (response.isSuccess) {
+          print(
+            '✅ All notifications for parent $_parentId deleted successfully',
+          );
+          await _loadNotifications(); // Reload the now-empty list
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم حذف جميع التنبيهات بنجاح')),
+            );
+          }
+        } else {
+          print('❌ Failed to delete notifications: ${response.error}');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('فشل في حذف التنبيهات: ${response.error}'),
+              ),
+            );
+          }
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا يمكن حذف التنبيهات: معرف الوالد غير متوفر'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error deleting all notifications: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء حذف التنبيهات: ${e.toString()}'),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -1049,6 +1239,12 @@ class _NewAlertsScreenState extends State<NewAlertsScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _loadNotifications,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
+              onPressed: () {
+                _showBulkDeleteConfirmationDialog();
+              },
             ),
           ],
         ),
@@ -1172,6 +1368,15 @@ class _NewAlertsScreenState extends State<NewAlertsScreen> {
                                       ),
                                     ],
                                   ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete,
+                                    color: Colors.red[400],
+                                  ),
+                                  onPressed: () async {
+                                    _showDeleteConfirmationDialog(notification);
+                                  },
                                 ),
                               ],
                             ),

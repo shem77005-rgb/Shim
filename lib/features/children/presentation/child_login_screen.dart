@@ -3,6 +3,7 @@ import 'package:safechild_system/features/emergency/presentation/emergency_scree
 import '../../auth/data/services/auth_service.dart';
 import '../../../models/child_model.dart';
 import '../../../models/child_login_response.dart';
+import '../../../services/child_location_service.dart';
 
 class ChildLoginScreen extends StatefulWidget {
   const ChildLoginScreen({super.key});
@@ -141,7 +142,41 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
 
                                         if (response.isSuccess &&
                                             response.data != null) {
-                                          // Success - Navigate to emergency screen with child data
+                                          // Success - Initialize location monitoring service
+                                          final child = response.data!;
+                                          final token =
+                                              await _authService.getToken();
+                                          if (token != null) {
+                                            // Parse the ID as integer since Child model has String ID
+                                            int childId =
+                                                int.tryParse(
+                                                  child.id.toString(),
+                                                ) ??
+                                                0;
+
+                                            ChildLocationService.initialize(
+                                              token,
+                                              childId,
+                                            );
+
+                                            // Start location monitoring
+                                            try {
+                                              await ChildLocationService.startLocationMonitoring();
+                                              print(
+                                                '✅ Location monitoring started for child $childId',
+                                              );
+                                            } catch (e) {
+                                              print(
+                                                '⚠️ Error starting location monitoring: $e',
+                                              );
+                                            }
+                                          } else {
+                                            print(
+                                              '⚠️ Could not get access token for location monitoring',
+                                            );
+                                          }
+
+                                          // Navigate to emergency screen with child data
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(

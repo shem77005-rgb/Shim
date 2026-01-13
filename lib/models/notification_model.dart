@@ -21,15 +21,22 @@ class NotificationModel {
     return NotificationModel(
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
-      description: json['description'] ?? json['message'] ?? '',
-      category: json['category'] ?? json['notification_type'] ?? 'system',
+      description: json['description'] ?? json['message'] ?? json['msg'] ?? '',
+      category:
+          json['category'] ??
+          json['notification_type'] ??
+          json['type'] ??
+          'system',
       timestamp:
           json['timestamp'] != null
               ? DateTime.parse(json['timestamp'])
               : (json['created_at'] != null
                   ? DateTime.parse(json['created_at'])
                   : DateTime.now()),
-      parentId: json['user']?.toString() ?? json['user_id']?.toString(),
+      parentId:
+          json['parent']?.toString() ??
+          json['user']?.toString() ??
+          json['user_id']?.toString(),
     );
   }
 
@@ -41,7 +48,7 @@ class NotificationModel {
       'description': description,
       'category': category,
       'timestamp': timestamp.toIso8601String(),
-      if (parentId != null) 'parent': parentId,
+      if (parentId != null) 'parent': int.tryParse(parentId!) ?? parentId,
     };
   }
 }
@@ -61,17 +68,20 @@ class NotificationCreateRequest {
   });
 
   /// Convert to JSON for API request
-  /// Django expects: title, description, category, parent (as integer ID)
+  /// Django expects: title, message, notification_type, user (as integer ID)
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {
       'title': title,
-      'description': description,
-      'category': category,
+      'message': description, // Backend uses 'message' instead of 'description'
+      'notification_type':
+          category, // Backend uses 'notification_type' instead of 'category'
     };
 
-    // Add parent as integer if provided
+    // Add parent/user as integer if provided
     if (parentId != null && parentId!.isNotEmpty) {
-      json['parent'] = int.tryParse(parentId!) ?? parentId;
+      json['user'] =
+          int.tryParse(parentId!) ??
+          parentId; // Backend uses 'user' instead of 'parent'
     }
 
     return json;

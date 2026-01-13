@@ -1,27 +1,31 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
 import 'api_constants.dart';
 import 'api_response.dart';
 
-/// API Client - Handles all HTTP requests
+/// API Client
+/// مسؤول فقط عن إرسال واستقبال طلبات HTTP
+/// ❌ لا يعرف AuthService
+/// ❌ لا ينشئ أي Service آخر
 class ApiClient {
   final http.Client _httpClient;
   String? _authToken;
 
   ApiClient({http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
+      : _httpClient = httpClient ?? http.Client();
 
-  /// Set authentication token
+  /// تعيين التوكن بعد تسجيل الدخول
   void setAuthToken(String token) {
     _authToken = token;
   }
 
-  /// Clear authentication token
+  /// مسح التوكن عند تسجيل الخروج
   void clearAuthToken() {
     _authToken = null;
   }
 
-  /// Get common headers
+  /// Headers مشتركة
   Map<String, String> _getHeaders({bool includeAuth = false}) {
     final headers = <String, String>{
       'Content-Type': ApiConstants.contentTypeJson,
@@ -30,16 +34,13 @@ class ApiClient {
 
     if (includeAuth && _authToken != null) {
       headers['Authorization'] = 'Bearer $_authToken';
-      print('🔵 [ApiClient] Adding Authorization header');
-    } else if (includeAuth) {
-      print('⚠️ [ApiClient] Auth required but no token available');
     }
 
     return headers;
   }
 
-  /// GET Request
-  Future<ApiResponse<T>> get<T>(
+  /// GET
+  Future<ApiResponse<T?>> get<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = false,
@@ -49,47 +50,24 @@ class ApiClient {
         '${ApiConstants.fullBaseUrl}$endpoint',
       ).replace(queryParameters: queryParameters);
 
-      print('🔵 [ApiClient] GET Request');
-      print('🔵 [ApiClient] URL: $uri');
-      print(
-        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
-      );
-
       final response = await _httpClient
           .get(uri, headers: _getHeaders(includeAuth: requiresAuth))
           .timeout(ApiConstants.connectionTimeout);
 
-      print('✅ [ApiClient] استلام الاستجابة');
-      print('✅ [ApiClient] Status Code: ${response.statusCode}');
-      print(
-        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
-      );
-
       return _handleResponse<T>(response);
-    } catch (e, stackTrace) {
-      print('❌ [ApiClient] خطأ في GET: $e');
-      print('❌ [ApiClient] Error type: ${e.runtimeType}');
-      print('❌ [ApiClient] Stack trace: $stackTrace');
+    } catch (e) {
       return ApiResponse.error(_handleError(e));
     }
   }
 
-  /// POST Request
-  Future<ApiResponse<T>> post<T>(
+  /// POST
+  Future<ApiResponse<T?>> post<T>(
     String endpoint, {
     Map<String, dynamic>? body,
     bool requiresAuth = false,
   }) async {
     try {
       final uri = Uri.parse('${ApiConstants.fullBaseUrl}$endpoint');
-
-      print('🔵 [ApiClient] POST Request');
-      print('🔵 [ApiClient] URL: $uri');
-      print(
-        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
-      );
-      print('🔵 [ApiClient] Body: ${body != null ? jsonEncode(body) : "null"}');
-      print('🔵 [ApiClient] إرسال الطلب...');
 
       final response = await _httpClient
           .post(
@@ -99,37 +77,20 @@ class ApiClient {
           )
           .timeout(ApiConstants.connectionTimeout);
 
-      print('✅ [ApiClient] استلام الاستجابة');
-      print('✅ [ApiClient] Status Code: ${response.statusCode}');
-      print(
-        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
-      );
-
       return _handleResponse<T>(response);
-    } catch (e, stackTrace) {
-      print('❌ [ApiClient] خطأ في POST: $e');
-      print('❌ [ApiClient] Error type: ${e.runtimeType}');
-      print('❌ [ApiClient] Stack trace: $stackTrace');
+    } catch (e) {
       return ApiResponse.error(_handleError(e));
     }
   }
 
-  /// PUT Request
-  Future<ApiResponse<T>> put<T>(
+  /// PUT
+  Future<ApiResponse<T?>> put<T>(
     String endpoint, {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
   }) async {
     try {
       final uri = Uri.parse('${ApiConstants.fullBaseUrl}$endpoint');
-
-      print('🔵 [ApiClient] PUT Request');
-      print('🔵 [ApiClient] URL: $uri');
-      print(
-        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
-      );
-      print('🔵 [ApiClient] Body: ${body != null ? jsonEncode(body) : "null"}');
-      print('🔵 [ApiClient] إرسال الطلب...');
 
       final response = await _httpClient
           .put(
@@ -139,148 +100,105 @@ class ApiClient {
           )
           .timeout(ApiConstants.connectionTimeout);
 
-      print('✅ [ApiClient] استلام الاستجابة');
-      print('✅ [ApiClient] Status Code: ${response.statusCode}');
-      print(
-        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
-      );
-
       return _handleResponse<T>(response);
-    } catch (e, stackTrace) {
-      print('❌ [ApiClient] خطأ في PUT: $e');
-      print('❌ [ApiClient] Error type: ${e.runtimeType}');
-      print('❌ [ApiClient] Stack trace: $stackTrace');
+    } catch (e) {
       return ApiResponse.error(_handleError(e));
     }
   }
 
-  /// DELETE Request
-  Future<ApiResponse<T>> delete<T>(
+  /// DELETE
+  Future<ApiResponse<T?>> delete<T>(
     String endpoint, {
     bool requiresAuth = true,
   }) async {
     try {
       final uri = Uri.parse('${ApiConstants.fullBaseUrl}$endpoint');
 
-      print('🔵 [ApiClient] DELETE Request');
-      print('🔵 [ApiClient] URL: $uri');
-      print(
-        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
-      );
-
       final response = await _httpClient
-          .delete(uri, headers: _getHeaders(includeAuth: requiresAuth))
+          .delete(
+            uri,
+            headers: _getHeaders(includeAuth: requiresAuth),
+          )
           .timeout(ApiConstants.connectionTimeout);
 
-      print('✅ [ApiClient] استلام الاستجابة');
-      print('✅ [ApiClient] Status Code: ${response.statusCode}');
-      print(
-        '✅ [ApiClient] Response Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...',
-      );
-
       return _handleResponse<T>(response);
-    } catch (e, stackTrace) {
-      print('❌ [ApiClient] خطأ في DELETE: $e');
-      print('❌ [ApiClient] Error type: ${e.runtimeType}');
-      print('❌ [ApiClient] Stack trace: $stackTrace');
+    } catch (e) {
       return ApiResponse.error(_handleError(e));
     }
   }
 
-  /// Handle HTTP Response
-  ApiResponse<T> _handleResponse<T>(http.Response response) {
-    final statusCode = response.statusCode;
+  /// معالجة الاستجابة
+  ApiResponse<T?> _handleResponse<T>(http.Response response) {
+  final statusCode = response.statusCode;
 
-    if (statusCode >= 200 && statusCode < 300) {
-      try {
-        final jsonData = jsonDecode(response.body);
-        return ApiResponse.success(jsonData);
-      } catch (e) {
-        return ApiResponse.error('فشل في تحليل البيانات');
-      }
-    } else if (statusCode == 401) {
-      return ApiResponse.error('انتهت جلسة العمل. يرجى تسجيل الدخول مرة أخرى');
-    } else if (statusCode == 403) {
-      return ApiResponse.error('غير مصرح لك بالوصول');
-    } else if (statusCode == 404) {
-      return ApiResponse.error('البريد الألكتروني او كلمة السر غير صحيحة ');
-    } else if (statusCode >= 500) {
-      // Log the actual server error for debugging
-      print('❌ [ApiClient] Server Error 500 - Response Body: ${response.body}');
-      try {
-        final jsonData = jsonDecode(response.body);
-        if (jsonData is Map<String, dynamic>) {
-          final message =
-              jsonData['detail'] ?? jsonData['error'] ?? jsonData['message'];
-          if (message != null) {
-            return ApiResponse.error('خطأ في الخادم: $message');
-          }
-        }
-      } catch (e) {
-        print('❌ [ApiClient] Failed to parse 500 error: $e');
-      }
-      return ApiResponse.error('خطأ في الخادم. حاول مرة أخرى لاحقًا');
-    } else {
-      try {
-        final jsonData = jsonDecode(response.body);
+  // حالة النجاح
+  if (statusCode >= 200 && statusCode < 300) {
+    if (response.body.isEmpty) {
+      // عند body فارغ، نعيد null بشكل آمن
+      return ApiResponse.success(null);
+    }
 
-        // Check for field-specific validation errors (Django REST Framework format)
-        if (jsonData is Map<String, dynamic>) {
-          // Collect all field errors
-          final List<String> errorMessages = [];
-          jsonData.forEach((key, value) {
-            if (value is List && value.isNotEmpty) {
-              errorMessages.add('$key: ${value.first}');
-            } else if (value is String) {
-              errorMessages.add('$key: $value');
-            }
-          });
-
-          if (errorMessages.isNotEmpty) {
-            return ApiResponse.error(errorMessages.join(', '));
-          }
-        }
-
-        // Check for different possible error message formats
-        final message =
-            jsonData['message'] ??
-            jsonData['detail'] ??
-            jsonData['error'] ??
-            'حدث خطأ غير معروف';
-        return ApiResponse.error(message);
-      } catch (e) {
-        // If we can't parse JSON, return the raw response body if it contains useful info
-        if (response.body.contains('database is locked')) {
-          return ApiResponse.error(
-            'قاعدة البيانات مشغولة. حاول مرة أخرى لاحقًا.',
-          );
-        }
-        return ApiResponse.error('حدث خطأ غير معروف');
-      }
+    try {
+      final jsonData = jsonDecode(response.body);
+      return ApiResponse.success(jsonData as T);
+    } catch (_) {
+      return ApiResponse.error('فشل في تحليل البيانات');
     }
   }
 
-  /// Handle Errors
+  // أخطاء محددة
+  if (statusCode == 401) {
+    return ApiResponse.error('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى');
+  }
+
+  if (statusCode == 403) {
+    return ApiResponse.error('غير مصرح لك بالوصول');
+  }
+
+  if (statusCode == 404) {
+    return ApiResponse.error('المورد غير موجود');
+  }
+
+  if (statusCode >= 500) {
+    return ApiResponse.error('خطأ في الخادم، حاول لاحقًا');
+  }
+
+  // حالات أخطاء أخرى مع محاولة استخراج الرسالة من JSON
+  try {
+    final jsonData = jsonDecode(response.body);
+    if (jsonData is Map<String, dynamic>) {
+      final message = jsonData['detail'] ??
+          jsonData['message'] ??
+          jsonData['error'] ??
+          'حدث خطأ غير معروف';
+      return ApiResponse.error(message);
+    }
+  } catch (_) {
+    // إذا لم نستطع تحليل JSON
+  }
+
+  return ApiResponse.error('حدث خطأ غير معروف');
+}
+
+
+  /// معالجة الأخطاء العامة
   String _handleError(dynamic error) {
-    final errorString = error.toString();
+    final message = error.toString();
 
-    if (errorString.contains('SocketException') ||
-        errorString.contains('Failed host lookup')) {
-      return 'لا يوجد اتصال بالإنترنت أو رابط API غير صحيح. تحقق من الإعدادات.';
-    } else if (errorString.contains('TimeoutException')) {
-      return 'انتهت مهلة الاتصال. حاول مرة أخرى';
-    } else if (errorString.contains('HandshakeException') ||
-        errorString.contains('CERTIFICATE')) {
-      return 'خطأ في شهادة SSL. تحقق من رابط الخادم.';
-    } else if (errorString.contains('FormatException')) {
-      return 'صيغة البيانات المستلمة غير صحيحة';
-    } else {
-      // More detailed error reporting
-      return 'حدث خطأ: $errorString';
+    if (message.contains('SocketException')) {
+      return 'لا يوجد اتصال بالإنترنت';
     }
+    if (message.contains('TimeoutException')) {
+      return 'انتهت مهلة الاتصال';
+    }
+    if (message.contains('HandshakeException')) {
+      return 'خطأ في شهادة الأمان SSL';
+    }
+
+    return 'حدث خطأ: $message';
   }
 
-  /// Dispose
+  /// إغلاق الـ client
   void dispose() {
     _httpClient.close();
   }
