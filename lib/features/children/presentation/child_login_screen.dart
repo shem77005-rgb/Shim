@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:safechild_system/features/emergency/presentation/emergency_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../services/child_apps_inventory_service.dart';
 import '../../auth/data/services/auth_service.dart';
 import '../../../models/child_model.dart';
+import '../../../services/firebase_messaging_service.dart';
+import '../../../services/policy_service.dart';
+
+// kept from main branch (even if not used directly here)
 import '../../../models/child_login_response.dart';
 import '../../../services/child_location_service.dart';
 
@@ -61,7 +68,6 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-
                 Form(
                   key: _formKey,
                   child: Column(
@@ -92,26 +98,19 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                           controller: _password,
                           obscureText: _obscure,
                           textDirection: TextDirection.ltr,
-                          validator:
-                              (v) =>
-                                  (v == null || v.isEmpty)
-                                      ? 'أدخل كلمة المرور'
-                                      : null,
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? 'أدخل كلمة المرور' : null,
                           decoration: _inputDecoration().copyWith(
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
+                                _obscure ? Icons.visibility_off : Icons.visibility,
                               ),
-                              onPressed:
-                                  () => setState(() => _obscure = !_obscure),
+                              onPressed: () => setState(() => _obscure = !_obscure),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 32),
-
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
@@ -122,132 +121,139 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed:
-                              _isLoading
-                                  ? null
-                                  : () async {
-                                    if (_formKey.currentState?.validate() ??
-                                        false) {
-                                      setState(() => _isLoading = true);
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  if (_formKey.currentState?.validate() ?? false) {
+                                    setState(() => _isLoading = true);
 
-                                      try {
-                                        // Use childLoginWithData to authenticate and fetch child data
-                                        final response = await _authService
-                                            .childLoginWithData(
-                                              email: _email.text.trim(),
-                                              password: _password.text,
-                                            );
+                                    try {
+                                      final response =
+                                          await _authService.childLoginWithData(
+                                        email: _email.text.trim(),
+                                        password: _password.text,
+                                      );
 
-                                        if (!mounted) return;
+                                      if (!mounted) return;
 
-                                        if (response.isSuccess &&
-                                            response.data != null) {
-                                          // Success - Initialize location monitoring service
-                                          final child = response.data!;
-                                          final token =
-                                              await _authService.getToken();
-                                          if (token != null) {
-                                            // Parse the ID as integer since Child model has String ID
-                                            int childId =
-                                                int.tryParse(
-                                                  child.id.toString(),
-                                                ) ??
-                                                0;
+                                      if (response.isSuccess && response.data != null) {
+                                        final child = response.data!;
 
-                                            ChildLocationService.initialize(
-                                              token,
-                                              childId,
-                                            );
+                                        // =====================================================
+                                        // ✅ block-app: تأكيد role + child_id (حل نهائي لمشكلة النوع)
+                                        // =====================================================
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.setString('user_role', 'child');
 
-                                            // Start location monitoring
-                                            try {
-                                              await ChildLocationService.startLocationMonitoring();
-                                              print(
-                                                '✅ Location monitoring started for child $childId',
-                                              );
-                                            } catch (e) {
-                                              print(
-                                                '⚠️ Error starting location monitoring: $e',
-                                              );
-                                            }
-                                          } else {
+                                        final parsedId = int.tryParse(child.id.toString().trim());
+                                        if (parsedId != null) {
+                                          await prefs.setInt('child_id', parsedId);
+                                        } else {
+                                          await prefs.setString('child_id', child.id.toString());
+                                        }
+
+                                        // =====================================================
+                                        // ✅ main: Initialize location monitoring service
+                                        // =====================================================
+                                        final token = await _authService.getToken();
+                                        if (token != null && token.isNotEmpty) {
+                                          final int childIdInt =
+                                              int.tryParse(child.id.toString()) ?? 0;
+
+                                          ChildLocationService.initialize(token, childIdInt);
+
+                                          try {
+                                            await ChildLocationService
+                                                .startLocationMonitoring();
+                                            // ignore: avoid_print
                                             print(
-                                              '⚠️ Could not get access token for location monitoring',
+                                              '✅ Location monitoring started for child $childIdInt',
+                                            );
+                                          } catch (e) {
+                                            // ignore: avoid_print
+                                            print(
+                                              '⚠️ Error starting location monitoring: $e',
                                             );
                                           }
-
-                                          // Navigate to emergency screen with child data
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'تم تسجيل الدخول بنجاح',
-                                              ),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (_) => EmergencyScreen(
-                                                    child: response.data!,
-                                                  ),
-                                            ),
-                                          );
                                         } else {
-                                          // Error - Show error message
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                response.error ??
-                                                    'فشل تسجيل الدخول',
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                          // ignore: avoid_print
+                                          print(
+                                            '⚠️ Could not get access token for location monitoring',
                                           );
                                         }
-                                      } catch (e) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(
+
+                                        // =====================================================
+                                        // ✅ block-app: Sync FCM + Apps + Policy
+                                        // =====================================================
+                                        await FirebaseMessagingService()
+                                            .syncChildTokenToServer();
+
+                                        await ChildAppsInventoryService()
+                                            .syncInstalledAppsToServer();
+
+                                        await PolicyService(
+                                          apiClient: _authService.apiClient,
+                                        ).fetchAndApplyChildPolicy();
+
+                                        // =====================================================
+                                        // ✅ UI feedback + navigation (both branches)
+                                        // =====================================================
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم تسجيل الدخول بنجاح'),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+
+                                        Navigator.pushReplacement(
                                           context,
-                                        ).showSnackBar(
+                                          MaterialPageRoute(
+                                            builder: (_) => EmergencyScreen(
+                                              child: child,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'حدث خطأ: ${e.toString()}',
+                                              response.error ?? 'فشل تسجيل الدخول',
                                             ),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() => _isLoading = false);
-                                        }
+                                      }
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('حدث خطأ: ${e.toString()}'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => _isLoading = false);
                                       }
                                     }
-                                  },
-
-                          child:
-                              _isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Text(
-                                    'دخول',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                  }
+                                },
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
+                                )
+                              : const Text(
+                                  'دخول',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                         ),
                       ),
                     ],

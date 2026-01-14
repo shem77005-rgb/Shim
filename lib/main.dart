@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import 'package:safechild_system/account_type_screen.dart';
 import 'package:safechild_system/features/apps/presentation/apps_screen.dart';
 import 'package:safechild_system/features/home/presentation/policy_settings_screen.dart';
-import 'package:safechild_system/services/monitor_service.dart';
+
 import 'package:safechild_system/features/auth/data/services/auth_service.dart';
 import 'package:safechild_system/services/firebase_messaging_service.dart';
+import 'package:safechild_system/services/monitor_service.dart';
+
 import 'package:safechild_system/core/di/service_locator.dart';
 import 'package:safechild_system/services/permission_service.dart';
 import 'package:safechild_system/services/child_location_service.dart';
@@ -14,47 +18,47 @@ final GlobalKey<NavigatorState> appNavKey = GlobalKey<NavigatorState>();
 
 Future<void> setupAdditionalServices() async {
   // أي خدمات إضافية يمكنك تهيئتها هنا
-  print('🔹 Running setupAdditionalServices...');
+  debugPrint('🔹 Running setupAdditionalServices...');
   // مثال: await SomeOtherService().init();
-  
+
   // Initialize location monitoring service if needed
   // ChildLocationService will be initialized when child logs in
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
     // 1️⃣ Initialize Firebase
     await Firebase.initializeApp();
-    print('✅ Firebase initialized successfully');
+    debugPrint('✅ [Main] Firebase initialized successfully');
 
     // 2️⃣ Initialize Firebase Messaging
     await FirebaseMessagingService().initialize();
-    print('✅ Firebase Messaging initialized');
+    debugPrint('✅ [Main] Firebase Messaging initialized');
 
-    // 3️⃣ Initialize authentication
+    // 3️⃣ Initialize authentication service
     final authService = AuthService();
     await authService.init();
-    print('✅ AuthService initialized');
+    debugPrint('✅ [Main] AuthService initialized');
 
-    // 4️⃣ Initialize monitor service
+    // 4️⃣ Initialize monitor service (important for app blocking)
     await MonitorService().init(navigatorKey: appNavKey);
-    print('✅ MonitorService initialized');
+    debugPrint('✅ [Main] MonitorService initialized');
 
-    // 5️⃣ Initialize service locator
+    // 5️⃣ Initialize service locator (DI)
     await setupServices();
-    print('✅ Service locator initialized');
+    debugPrint('✅ [Main] Service locator initialized');
 
     // 6️⃣ Any additional services
     await setupAdditionalServices();
-    print('✅ Additional services initialized');
+    debugPrint('✅ [Main] Additional services initialized');
 
-    // 7️⃣ Initialize location monitoring service after login
-    // ChildLocationService will be initialized when child logs in with token and childId
-    print('📍 Location monitoring service ready for initialization');
-  } catch (e) {
-    print('❌ Error during initialization: $e');
+    // 7️⃣ Location monitoring service will be initialized after child login
+    debugPrint('📍 [Main] Location monitoring service ready for initialization');
+  } catch (e, stackTrace) {
+    debugPrint('❌ [Main] Error during initialization: $e');
+    debugPrint('❌ [Main] Stack trace: $stackTrace');
   }
 
   runApp(const MyApp());
@@ -65,12 +69,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Request location permissions when the app starts
+    // ✅ main: Request location permissions when the app starts
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      bool hasPermission =
-          await PermissionService.isLocationPermissionGranted();
-      if (!hasPermission) {
-        await PermissionService.requestLocation();
+      try {
+        final hasPermission = await PermissionService.isLocationPermissionGranted();
+        if (!hasPermission) {
+          await PermissionService.requestLocation();
+        }
+      } catch (e) {
+        debugPrint('⚠️ [Main] Location permission request error: $e');
       }
     });
 

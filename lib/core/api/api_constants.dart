@@ -62,7 +62,14 @@ class ApiConstants {
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-  // Headers
+  // Headersf
   static const String contentTypeJson = 'application/json';
   static const String acceptJson = 'application/json';
+
+  static String childFcmToken(int childId) => '/api/children/$childId/fcm-token/';
+  static const String childPolicy = '/api/child/policy/';
+  static String childApps(int childId) => '/api/children/$childId/apps/';
+  static String childAppsInventory(int childId) => '/api/children/$childId/apps/inventory/';
+  static String childPolicyForParent(int childId) => '/api/children/$childId/policy/';
+
 }

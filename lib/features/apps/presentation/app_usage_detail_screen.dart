@@ -1,10 +1,11 @@
 
-import '../../../services/app_blocker_service.dart';
-
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:usage_stats/usage_stats.dart';
+
+import '../../../services/app_blocker_service.dart';
 
 
 class AppUsageDetailScreen extends StatefulWidget {
@@ -92,15 +93,7 @@ class _AppUsageDetailScreenState extends State<AppUsageDetailScreen> {
 
       _used = Duration(milliseconds: totalMs);
 
-      // 🔥🔥🔥 هنا نضع كود الحظر
-      AppBlockerService.init(
-        context: context,
-        targetPackage: widget.packageName,
-        used: _used,
-        limit: widget.limit,
-        appName: widget.title,
-      );
-
+   
       // ----------------------------- حساب بالساعة ----------------------------
       List<int> hourly = List.filled(24, 0);
 
