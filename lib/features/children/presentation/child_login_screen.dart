@@ -1,282 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:safechild_system/features/emergency/presentation/emergency_screen.dart';
-// import '../../auth/data/services/auth_service.dart';
-// import '../../../models/child_model.dart';
-// import '../../../models/child_login_response.dart';
-//
-// class ChildLoginScreen extends StatefulWidget {
-//   const ChildLoginScreen({super.key});
-//
-//   @override
-//   State<ChildLoginScreen> createState() => _ChildLoginScreenState();
-// }
-//
-// class _ChildLoginScreenState extends State<ChildLoginScreen> {
-//   final _formKey = GlobalKey<FormState>();
-//   final _email = TextEditingController();
-//   final _password = TextEditingController();
-//   bool _obscure = true;
-//   bool _isLoading = false;
-//
-//   final _authService = AuthService();
-//
-//   static const Color bg = Color(0xFFE9F6FF); // أزرق فاتح
-//   static const Color navy = Color(0xFF08376B); // أزرق داكن
-//   static const Color border = Color(0xFF2C5A85);
-//
-//   @override
-//   void dispose() {
-//     _email.dispose();
-//     _password.dispose();
-//     super.dispose();
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Directionality(
-//       textDirection: TextDirection.rtl,
-//       child: Scaffold(
-//         backgroundColor: bg,
-//         body: SafeArea(
-//           child: SingleChildScrollView(
-//             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 const SizedBox(height: 8),
-//                 Image.asset(
-//                   'assets/images/logo.png',
-//                   width: 70,
-//                   height: 70,
-//                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-//                 ),
-//                 const SizedBox(height: 12),
-//                 const Text(
-//                   'تسجيل دخول الطفل',
-//                   style: TextStyle(
-//                     fontSize: 26,
-//                     fontWeight: FontWeight.w900,
-//                     color: Color(0xFF0A7ABD),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 28),
-//
-//                 Form(
-//                   key: _formKey,
-//                   child: Column(
-//                     children: [
-//                       _LabeledField(
-//                         label: 'البريد الإلكتروني',
-//                         child: TextFormField(
-//                           controller: _email,
-//                           keyboardType: TextInputType.emailAddress,
-//                           textDirection: TextDirection.ltr,
-//                           validator: (v) {
-//                             if (v == null || v.trim().isEmpty) {
-//                               return 'أدخل البريد الإلكتروني';
-//                             }
-//                             final rx = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
-//                             if (!rx.hasMatch(v.trim())) {
-//                               return 'صيغة البريد غير صحيحة';
-//                             }
-//                             return null;
-//                           },
-//                           decoration: _inputDecoration(),
-//                         ),
-//                       ),
-//                       const SizedBox(height: 16),
-//                       _LabeledField(
-//                         label: 'كلمة المرور',
-//                         child: TextFormField(
-//                           controller: _password,
-//                           obscureText: _obscure,
-//                           textDirection: TextDirection.ltr,
-//                           validator:
-//                               (v) =>
-//                                   (v == null || v.isEmpty)
-//                                       ? 'أدخل كلمة المرور'
-//                                       : null,
-//                           decoration: _inputDecoration().copyWith(
-//                             suffixIcon: IconButton(
-//                               icon: Icon(
-//                                 _obscure
-//                                     ? Icons.visibility_off
-//                                     : Icons.visibility,
-//                               ),
-//                               onPressed:
-//                                   () => setState(() => _obscure = !_obscure),
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                       const SizedBox(height: 32),
-//
-//                       SizedBox(
-//                         width: double.infinity,
-//                         child: FilledButton(
-//                           style: FilledButton.styleFrom(
-//                             backgroundColor: navy,
-//                             padding: const EdgeInsets.symmetric(vertical: 16),
-//                             shape: RoundedRectangleBorder(
-//                               borderRadius: BorderRadius.circular(12),
-//                             ),
-//                           ),
-//                           onPressed:
-//                               _isLoading
-//                                   ? null
-//                                   : () async {
-//                                     if (_formKey.currentState?.validate() ??
-//                                         false) {
-//                                       setState(() => _isLoading = true);
-//
-//                                       try {
-//                                         // Use childLoginWithData to authenticate and fetch child data
-//                                         final response = await _authService
-//                                             .childLoginWithData(
-//                                               email: _email.text.trim(),
-//                                               password: _password.text,
-//                                             );
-//
-//                                         if (!mounted) return;
-//
-//                                         if (response.isSuccess &&
-//                                             response.data != null) {
-//                                           // Success - Navigate to emergency screen with child data
-//                                           ScaffoldMessenger.of(
-//                                             context,
-//                                           ).showSnackBar(
-//                                             const SnackBar(
-//                                               content: Text(
-//                                                 'تم تسجيل الدخول بنجاح',
-//                                               ),
-//                                               backgroundColor: Colors.green,
-//                                             ),
-//                                           );
-//
-//                                           Navigator.pushReplacement(
-//                                             context,
-//                                             MaterialPageRoute(
-//                                               builder:
-//                                                   (_) => EmergencyScreen(
-//                                                     child: response.data!,
-//                                                   ),
-//                                             ),
-//                                           );
-//                                         } else {
-//                                           // Error - Show error message
-//                                           ScaffoldMessenger.of(
-//                                             context,
-//                                           ).showSnackBar(
-//                                             SnackBar(
-//                                               content: Text(
-//                                                 response.error ??
-//                                                     'فشل تسجيل الدخول',
-//                                               ),
-//                                               backgroundColor: Colors.red,
-//                                             ),
-//                                           );
-//                                         }
-//                                       } catch (e) {
-//                                         if (!mounted) return;
-//                                         ScaffoldMessenger.of(
-//                                           context,
-//                                         ).showSnackBar(
-//                                           SnackBar(
-//                                             content: Text(
-//                                               'حدث خطأ: ${e.toString()}',
-//                                             ),
-//                                             backgroundColor: Colors.red,
-//                                           ),
-//                                         );
-//                                       } finally {
-//                                         if (mounted) {
-//                                           setState(() => _isLoading = false);
-//                                         }
-//                                       }
-//                                     }
-//                                   },
-//
-//                           child:
-//                               _isLoading
-//                                   ? const SizedBox(
-//                                     height: 20,
-//                                     width: 20,
-//                                     child: CircularProgressIndicator(
-//                                       color: Colors.white,
-//                                       strokeWidth: 2,
-//                                     ),
-//                                   )
-//                                   : const Text(
-//                                     'دخول',
-//                                     style: TextStyle(
-//                                       fontSize: 18,
-//                                       fontWeight: FontWeight.w800,
-//                                     ),
-//                                   ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-//
-//   InputDecoration _inputDecoration() {
-//     return InputDecoration(
-//       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-//       filled: true,
-//       fillColor: Colors.white,
-//       enabledBorder: OutlineInputBorder(
-//         borderRadius: BorderRadius.circular(12),
-//         borderSide: const BorderSide(color: border, width: 1.3),
-//       ),
-//       focusedBorder: OutlineInputBorder(
-//         borderRadius: BorderRadius.circular(12),
-//         borderSide: const BorderSide(color: border, width: 1.8),
-//       ),
-//       errorBorder: OutlineInputBorder(
-//         borderRadius: BorderRadius.circular(12),
-//         borderSide: const BorderSide(color: Colors.red),
-//       ),
-//       focusedErrorBorder: OutlineInputBorder(
-//         borderRadius: BorderRadius.circular(12),
-//         borderSide: const BorderSide(color: Colors.red),
-//       ),
-//     );
-//   }
-// }
-//
-// class _LabeledField extends StatelessWidget {
-//   const _LabeledField({required this.label, required this.child});
-//   final String label;
-//   final Widget child;
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.end,
-//       children: [
-//         Padding(
-//           padding: const EdgeInsetsDirectional.only(end: 8, bottom: 6),
-//           child: Text(
-//             label,
-//             style: const TextStyle(
-//               fontWeight: FontWeight.w700,
-//               color: Colors.black54,
-//             ),
-//           ),
-//         ),
-//         child,
-//       ],
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:safechild_system/features/emergency/presentation/emergency_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -286,6 +7,10 @@ import '../../auth/data/services/auth_service.dart';
 import '../../../models/child_model.dart';
 import '../../../services/firebase_messaging_service.dart';
 import '../../../services/policy_service.dart';
+
+// kept from main branch (even if not used directly here)
+import '../../../models/child_login_response.dart';
+import '../../../services/child_location_service.dart';
 
 class ChildLoginScreen extends StatefulWidget {
   const ChildLoginScreen({super.key});
@@ -374,7 +99,7 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                           obscureText: _obscure,
                           textDirection: TextDirection.ltr,
                           validator: (v) =>
-                          (v == null || v.isEmpty) ? 'أدخل كلمة المرور' : null,
+                              (v == null || v.isEmpty) ? 'أدخل كلمة المرور' : null,
                           decoration: _inputDecoration().copyWith(
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -399,104 +124,136 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                           onPressed: _isLoading
                               ? null
                               : () async {
-                            if (_formKey.currentState?.validate() ?? false) {
-                              setState(() => _isLoading = true);
+                                  if (_formKey.currentState?.validate() ?? false) {
+                                    setState(() => _isLoading = true);
 
-                              try {
-                                final response =
-                                await _authService.childLoginWithData(
-                                  email: _email.text.trim(),
-                                  password: _password.text,
-                                );
+                                    try {
+                                      final response =
+                                          await _authService.childLoginWithData(
+                                        email: _email.text.trim(),
+                                        password: _password.text,
+                                      );
 
-                                if (!mounted) return;
+                                      if (!mounted) return;
 
-                                if (response.isSuccess &&
-                                    response.data != null) {
-                                  // ✅ تأكيد role + child_id (حل نهائي لمشكلة النوع)
-                                  final prefs =
-                                  await SharedPreferences.getInstance();
-                                  await prefs.setString('user_role', 'child');
+                                      if (response.isSuccess && response.data != null) {
+                                        final child = response.data!;
 
-                                  // خزّن child_id كـ int إذا ممكن
-                                  final parsedId = int.tryParse(
-                                    response.data!.id.toString().trim(),
-                                  );
-                                  if (parsedId != null) {
-                                    await prefs.setInt('child_id', parsedId);
-                                  } else {
-                                    await prefs.setString(
-                                      'child_id',
-                                      response.data!.id.toString(),
-                                    );
+                                        // =====================================================
+                                        // ✅ block-app: تأكيد role + child_id (حل نهائي لمشكلة النوع)
+                                        // =====================================================
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.setString('user_role', 'child');
+
+                                        final parsedId = int.tryParse(child.id.toString().trim());
+                                        if (parsedId != null) {
+                                          await prefs.setInt('child_id', parsedId);
+                                        } else {
+                                          await prefs.setString('child_id', child.id.toString());
+                                        }
+
+                                        // =====================================================
+                                        // ✅ main: Initialize location monitoring service
+                                        // =====================================================
+                                        final token = await _authService.getToken();
+                                        if (token != null && token.isNotEmpty) {
+                                          final int childIdInt =
+                                              int.tryParse(child.id.toString()) ?? 0;
+
+                                          ChildLocationService.initialize(token, childIdInt);
+
+                                          try {
+                                            await ChildLocationService
+                                                .startLocationMonitoring();
+                                            // ignore: avoid_print
+                                            print(
+                                              '✅ Location monitoring started for child $childIdInt',
+                                            );
+                                          } catch (e) {
+                                            // ignore: avoid_print
+                                            print(
+                                              '⚠️ Error starting location monitoring: $e',
+                                            );
+                                          }
+                                        } else {
+                                          // ignore: avoid_print
+                                          print(
+                                            '⚠️ Could not get access token for location monitoring',
+                                          );
+                                        }
+
+                                        // =====================================================
+                                        // ✅ block-app: Sync FCM + Apps + Policy
+                                        // =====================================================
+                                        await FirebaseMessagingService()
+                                            .syncChildTokenToServer();
+
+                                        await ChildAppsInventoryService()
+                                            .syncInstalledAppsToServer();
+
+                                        await PolicyService(
+                                          apiClient: _authService.apiClient,
+                                        ).fetchAndApplyChildPolicy();
+
+                                        // =====================================================
+                                        // ✅ UI feedback + navigation (both branches)
+                                        // =====================================================
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('تم تسجيل الدخول بنجاح'),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => EmergencyScreen(
+                                              child: child,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              response.error ?? 'فشل تسجيل الدخول',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('حدث خطأ: ${e.toString()}'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => _isLoading = false);
+                                      }
+                                    }
                                   }
-
-                                  // ✅ 1) Sync FCM token للطفل
-                                  await FirebaseMessagingService()
-                                      .syncChildTokenToServer();
-                                  await ChildAppsInventoryService().syncInstalledAppsToServer();
-                                  // ✅ 2) اسحب policy من السيرفر وطبّقها محليًا
-                                  await PolicyService(
-                                    apiClient: _authService.apiClient,
-                                  ).fetchAndApplyChildPolicy();
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('تم تسجيل الدخول بنجاح'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EmergencyScreen(
-                                        child: response.data!,
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        response.error ?? 'فشل تسجيل الدخول',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                    Text('حدث خطأ: ${e.toString()}'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() => _isLoading = false);
-                                }
-                              }
-                            }
-                          },
+                                },
                           child: _isLoading
                               ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : const Text(
-                            'دخول',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                                  'دخول',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -560,4 +317,3 @@ class _LabeledField extends StatelessWidget {
     );
   }
 }
-

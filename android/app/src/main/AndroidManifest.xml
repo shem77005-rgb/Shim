@@ -15,6 +15,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- ✅ Location permissions (للـ Geofencing / التتبع) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- ملاحظة: في Android 10+ تحتاج هذا للوصول بالخلفية -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
     <!-- ✅ Foreground service base -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
@@ -28,7 +34,7 @@
         android:name="android.permission.POST_NOTIFICATIONS"
         tools:targetApi="33" />
 
-    <!-- اختياري -->
+    <!-- اختياري (مفيد لإبقاء الخدمة مستيقظة) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -92,6 +98,12 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/text_monitor_service_config" />
         </service>
+
+        <!-- Location Monitor Service for Geographical Restrictions -->
+        <service
+            android:name=".LocationMonitorService"
+            android:enabled="true"
+            android:exported="false" />
 
         <meta-data
             android:name="flutterEmbedding"
