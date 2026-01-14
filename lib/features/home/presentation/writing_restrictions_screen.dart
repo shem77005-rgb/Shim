@@ -451,7 +451,6 @@
 //   }
 // }
 
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/child_model.dart';
@@ -523,7 +522,8 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
           setState(() {
             _children = response.data!;
             // فلترة الأطفال فقط الذين لديهم نفس parentId
-            _children = _children.where((child) => child.parentId == user.id).toList();
+            _children =
+                _children.where((child) => child.parentId == user.id).toList();
             if (_children.isNotEmpty) {
               _selectedChildId = _children.first.id.toString();
               _selectedChildName = _children.first.name;
@@ -573,24 +573,25 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
     if (mounted) {
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('تفعيل خدمة مراقبة النصوص'),
-          content: const Text(
-            'لتفعيل خدمة مراقبة النصوص:\n\n'
-            '1. ابحث عن "SafeChild Text Monitor"\n'
-            '2. اضغط عليها وفعّل الخدمة\n'
-            '3. ارجع إلى التطبيق',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _checkAccessibilityStatus();
-              },
-              child: const Text('تم'),
+        builder:
+            (context) => AlertDialog(
+              title: const Text('تفعيل خدمة مراقبة النصوص'),
+              content: const Text(
+                'لتفعيل خدمة مراقبة النصوص:\n\n'
+                '1. ابحث عن "SafeChild Text Monitor"\n'
+                '2. اضغط عليها وفعّل الخدمة\n'
+                '3. ارجع إلى التطبيق',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _checkAccessibilityStatus();
+                  },
+                  child: const Text('تم'),
+                ),
+              ],
             ),
-          ],
-        ),
       );
     }
   }
@@ -633,11 +634,6 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.blue.shade50,
-            child: const Icon(Icons.person, size: 18),
-          ),
           const Spacer(),
           const Text(
             'Safe Child System',
@@ -700,7 +696,10 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
 
   Widget _buildAccessibilityCard() {
     return Card(
-      color: _isAccessibilityEnabled ? Colors.green.shade50 : Colors.orange.shade50,
+      color:
+          _isAccessibilityEnabled
+              ? Colors.green.shade50
+              : Colors.orange.shade50,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -724,9 +723,10 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
                         : 'خدمة المراقبة غير مفعّلة',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: _isAccessibilityEnabled
-                          ? Colors.green.shade700
-                          : Colors.orange.shade700,
+                      color:
+                          _isAccessibilityEnabled
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
                     ),
                   ),
                   Text(
@@ -778,15 +778,18 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
                   vertical: 8,
                 ),
               ),
-              items: _children.map<DropdownMenuItem<String>>((child) {
-                return DropdownMenuItem<String>(
-                  value: child.id.toString(),
-                  child: Text(child.name),
-                );
-              }).toList(),
+              items:
+                  _children.map<DropdownMenuItem<String>>((child) {
+                    return DropdownMenuItem<String>(
+                      value: child.id.toString(),
+                      child: Text(child.name),
+                    );
+                  }).toList(),
               onChanged: (value) {
                 if (value != null) {
-                  final child = _children.firstWhere((c) => c.id.toString() == value);
+                  final child = _children.firstWhere(
+                    (c) => c.id.toString() == value,
+                  );
                   setState(() {
                     _selectedChildId = value;
                     _selectedChildName = child.name;
@@ -799,19 +802,23 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _selectedChildId != null
-                    ? () {
-                        final selectedChild = _children.firstWhere(
-                            (child) => child.id.toString() == _selectedChildId);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ChildWordRestrictionsScreen(child: selectedChild),
-                          ),
-                        );
-                      }
-                    : null,
+                onPressed:
+                    _selectedChildId != null
+                        ? () {
+                          final selectedChild = _children.firstWhere(
+                            (child) => child.id.toString() == _selectedChildId,
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => ChildWordRestrictionsScreen(
+                                    child: selectedChild,
+                                  ),
+                            ),
+                          );
+                        }
+                        : null,
                 child: const Text('إدارة الكلمات المحظورة للطفل'),
               ),
             ),
@@ -830,12 +837,14 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
           children: [
             Switch(
               value: _enabled,
-              onChanged: _isAccessibilityEnabled
-                  ? (v) {
-                      setState(() => _enabled = v);
-                      if (_selectedChildId != null) _saveSettingsForChild(_selectedChildId!, v);
-                    }
-                  : null,
+              onChanged:
+                  _isAccessibilityEnabled
+                      ? (v) {
+                        setState(() => _enabled = v);
+                        if (_selectedChildId != null)
+                          _saveSettingsForChild(_selectedChildId!, v);
+                      }
+                      : null,
               activeColor: Colors.white,
               activeTrackColor: navy,
             ),
@@ -870,4 +879,3 @@ class _WritingRestrictionsScreenState extends State<WritingRestrictionsScreen> {
     );
   }
 }
-

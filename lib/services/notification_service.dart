@@ -30,9 +30,9 @@ class NotificationService {
       }
 
       // Build URL with parent filter if provided
-      String url = ApiConstants.notifications;
+      String url = ApiConstants.notificationsByUser;
       if (parentId != null && parentId.isNotEmpty) {
-        url = '${ApiConstants.notifications}?user=$parentId';
+        url = '${ApiConstants.notificationsByUser}?user=$parentId';
       }
 
       final response = await _apiClient.get<List<dynamic>>(

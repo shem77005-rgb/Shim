@@ -139,6 +139,7 @@ class AuthService {
         return ApiResponse.success(authResponse);
       } else {
         print('❌ [AuthService] فشل: ${response.error}');
+
         // Provide more specific error messages for common issues
         String errorMessage = response.error ?? 'فشل إنشاء الحساب';
 
@@ -150,6 +151,10 @@ class AuthService {
             errorMessage.contains('already exists')) {
           errorMessage =
               'هذا البريد الإلكتروني مسجل مسبقاً. استخدم بريدًا آخر أو سجل دخولك مباشرة.';
+        } else if (errorMessage.contains('server error') ||
+            errorMessage.contains('خطأ في الخادم')) {
+          errorMessage =
+              'حدث خطأ في الخادم. تأكد من أن الخادم يعمل بشكل صحيح وحاول مرة أخرى.';
         }
 
         return ApiResponse.error(errorMessage);

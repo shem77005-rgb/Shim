@@ -261,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return _buildMainContent();
       case 1: // الإشعارات
         return const NewAlertsScreen();
-   
+
       default:
         return _buildMainContent();
     }
@@ -272,7 +272,6 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         const _TopBar(),
         const SizedBox(height: 10),
-      
 
         Expanded(
           child: ListView(
@@ -740,7 +739,6 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 18)),
           const Spacer(),
           Row(
             children: [
@@ -760,10 +758,6 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.settings_outlined),
-          ),
         ],
       ),
     );
@@ -928,10 +922,6 @@ class _BottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.notifications_none_rounded),
           label: 'إشعارات',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: 'الملف',
         ),
       ],
     );

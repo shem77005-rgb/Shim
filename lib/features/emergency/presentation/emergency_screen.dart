@@ -525,6 +525,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
               fontSize: 18,
             ),
           ),
+          automaticallyImplyLeading: false, // Disable the back button
         ),
         body: SafeArea(
           child: Padding(
@@ -533,32 +534,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
               child: Column(
                 children: [
                   const SizedBox(height: 8),
-                  // Display child information if available
-                  if (widget.child != null) ...[
-                    Card(
-                      color: Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'معلومات الطفل:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('الاسم: ${widget.child!.name}'),
-                            Text('البريد الإلكتروني: ${widget.child!.email}'),
-                            Text('العمر: ${widget.child!.age} سنة'),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                  // Child information is intentionally hidden on emergency screen for privacy
                   // نبض دائري مع صورة الطوارئ في المنتصف (استبدال الأيقونة بالصورة)
                   Image.asset('assets/images/emergency.png'),
 
@@ -620,7 +596,7 @@ class _EmergencyScreenState extends State<EmergencyScreen>
                       ),
                       onPressed: _confirmAndSend,
                       child: const Text(
-                        'إرسال طوارئ',
+                        'إرسال تنبية',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,

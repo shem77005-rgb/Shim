@@ -31,102 +31,12 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
   static const Color navy = Color(0xFF0A2E66);
   static const Color info = Color(0xFFE8F3FF);
 
-  // Load children dynamically from the database
-  List<Child> _children = [];
-  bool _isLoadingChildren = true;
-  String _parentId = '';
-  int _selectedChild = 0;
-
-  late ChildService _childService;
   late AuthService _authService;
 
   @override
   void initState() {
     super.initState();
     _authService = AuthService();
-    _childService = ChildService(apiClient: _authService.apiClient);
-    _loadParentAndChildren();
-  }
-
-  Future<void> _loadParentAndChildren() async {
-    try {
-      print('🔵 [PolicySettings] Loading parent ID and children');
-
-      // Get parent ID from authenticated user
-      final user = await _authService.getCurrentUser();
-      if (user != null && user.userType == 'parent') {
-        setState(() {
-          _parentId = user.id;
-        });
-        print('🔵 [PolicySettings] Parent ID: $_parentId');
-
-        // Load children for this parent
-        await _loadChildren();
-      } else {
-        print('⚠️ [PolicySettings] Current user is not a parent');
-        setState(() {
-          _isLoadingChildren = false;
-        });
-      }
-    } catch (e) {
-      print('❌ [PolicySettings] Error loading parent/children: $e');
-      setState(() {
-        _isLoadingChildren = false;
-      });
-    }
-  }
-
-  Future<void> _loadChildren() async {
-    if (_parentId.isEmpty) {
-      print('⚠️ [PolicySettings] Cannot load children: Parent ID is empty');
-      setState(() {
-        _isLoadingChildren = false;
-      });
-      return;
-    }
-
-    try {
-      print('🔵 [PolicySettings] Fetching children for parent: $_parentId');
-      final response = await _childService.getParentChildren(
-        parentId: _parentId,
-      );
-
-      if (response.isSuccess && response.data != null) {
-        print('✅ [PolicySettings] Loaded ${response.data!.length} children');
-
-        // Client-side filtering for safety
-        final filteredChildren =
-            response.data!.where((child) {
-              return child.parentId == _parentId;
-            }).toList();
-
-        print(
-          '🔵 [PolicySettings] After filtering: ${filteredChildren.length} children',
-        );
-
-        setState(() {
-          _children = filteredChildren;
-          _isLoadingChildren = false;
-        });
-
-        // Log each child
-        for (var child in _children) {
-          print(
-            '🔵 [PolicySettings] Child: ${child.name} (ID: ${child.id}, Parent: ${child.parentId})',
-          );
-        }
-      } else {
-        print('❌ [PolicySettings] Failed to load children: ${response.error}');
-        setState(() {
-          _isLoadingChildren = false;
-        });
-      }
-    } catch (e) {
-      print('❌ [PolicySettings] Error loading children: $e');
-      setState(() {
-        _isLoadingChildren = false;
-      });
-    }
   }
 
   final List<_Restriction> _items = [
@@ -184,78 +94,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            const Text(
-              'اختر طفلاً',
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Show loading indicator while fetching children
-            if (_isLoadingChildren)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            // Show message if no children found
-            else if (_children.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.grey),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'لا توجد حسابات أطفال مضافة. أضف طفلًا أولاً من الصفحة الرئيسية.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            // Show children chips
-            else
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(_children.length, (i) {
-                    final selected = _selectedChild == i;
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: ChoiceChip(
-                        label: Text(
-                          _children[i].name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: selected ? Colors.white : navy,
-                          ),
-                        ),
-                        selected: selected,
-                        selectedColor: navy,
-                        backgroundColor: Colors.white,
-                        side: BorderSide(
-                          color: selected ? navy : Colors.black12,
-                        ),
-                        onSelected: (_) => setState(() => _selectedChild = i),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-
-            const SizedBox(height: 16),
-
             const SizedBox(height: 16),
 
             const Text(
@@ -292,35 +130,6 @@ class _PolicySettingsScreenState extends State<PolicySettingsScreen> {
                     );
                     return;
                   }
-
-                  // **التعامل مع القيود الجغرافية**
-                  // if (item.title == 'القيود الجغرافية') {
-                  //   // Check if a child is selected
-                  //   if (_children.isNotEmpty &&
-                  //       _selectedChild >= 0 &&
-                  //       _selectedChild < _children.length) {
-                  //     final selectedChild = _children[_selectedChild];
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(
-                  //         builder:
-                  //             (_) => ChildGeographicalRestrictionsScreen(
-                  //               childId:
-                  //                   int.tryParse(selectedChild.id.toString()) ??
-                  //                   0,
-                  //               childName: selectedChild.name,
-                  //             ),
-                  //       ),
-                  //     );
-                  //   } else {
-                  //     ScaffoldMessenger.of(context).showSnackBar(
-                  //       const SnackBar(
-                  //         content: Text('الرجاء اختيار طفل أولاً'),
-                  //       ),
-                  //     );
-                  //   }
-                  //   return;
-                  // }
 
                   // **التعامل مع إدارة المناطق الجغرافية**
                   if (item.title.trim() == 'القيود الجغرافية') {

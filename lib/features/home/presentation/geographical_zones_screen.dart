@@ -58,6 +58,9 @@ class _GeographicalZonesScreenState extends State<GeographicalZonesScreen> {
           final parentChildren = response.data!;
           setState(() {
             _children = parentChildren;
+            // Client-side filtering to ensure only children with matching parent ID are shown
+            _children =
+                _children.where((child) => child.parentId == user.id).toList();
             if (_children.isNotEmpty) {
               _selectedChildId = _children.first.id.toString();
               _selectedChildName = _children.first.name;
@@ -75,7 +78,10 @@ class _GeographicalZonesScreenState extends State<GeographicalZonesScreen> {
   Future<void> _loadZonesForChild(String childId) async {
     try {
       // Load only zones for the specific child
-      final response = await _geoRestrictionService.getZonesForChild(childId);
+      final intChildId = int.tryParse(childId) ?? 0;
+      final response = await _geoRestrictionService.getZonesForChild(
+        intChildId,
+      );
       if (response.isSuccess && response.data != null) {
         setState(() {
           _zones = response.data!;
@@ -194,11 +200,6 @@ class _GeographicalZonesScreenState extends State<GeographicalZonesScreen> {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.blue.shade50,
-            child: const Icon(Icons.person, size: 18),
-          ),
           const Spacer(),
           const Text(
             'Safe Child System',
@@ -410,13 +411,37 @@ class _GeographicalZonesScreenState extends State<GeographicalZonesScreen> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'س:${zone.startTime} - ${zone.endTime}',
+                            'س:\${zone.startTime} - \${zone.endTime}',
                             style: TextStyle(
                               color: zone.isActive ? Colors.blue : Colors.grey,
                               fontSize: 11,
                             ),
                           ),
                         ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              zone.notifyOnViolation
+                                  ? Colors.orange.shade100
+                                  : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          zone.notifyOnViolation ? 'تنبيه مفعل' : 'تنبيه معطل',
+                          style: TextStyle(
+                            color:
+                                zone.notifyOnViolation
+                                    ? Colors.orange
+                                    : Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -503,6 +528,74 @@ class _GeographicalZoneDialogState extends State<_GeographicalZoneDialog> {
   bool _isMapSelectionMode = false;
   bool _isSearching = false;
   List<Location> _searchResults = [];
+
+  Future<void> getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable location services.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى تفعيل خدمات الموقع'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, next time you could try
+        // requesting permissions again (this is also where
+        // Android's shouldShowRequestPermissionRationale
+        // returned true the first time, but user denied it)
+        // but the dotted line would be to show a SnackBar
+        // with the option to open settings
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم رفض إذن الموقع، يرجى تفعيله من الإعدادات'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // When we reach here, permissions are granted and we can
+    // continue accessing the position of the device.
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _selectedLatitude = position.latitude;
+        _selectedLongitude = position.longitude;
+        _latitudeController.text = position.latitude.toStringAsFixed(6);
+        _longitudeController.text = position.longitude.toStringAsFixed(6);
+      });
+    } catch (e) {
+      print('Error getting location: \$e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في الحصول على الموقع: \$e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -653,103 +746,105 @@ class _GeographicalZoneDialogState extends State<_GeographicalZoneDialog> {
                             ),
                           ),
                         // Map with tap gesture recognition
-                        GestureDetector(
-                          onTapUp: (TapUpDetails details) async {
-                            // Convert screen coordinates to map coordinates
-                            // For now, we'll simulate getting the coordinates based on the map center
-                            // In a real implementation, we would use map controller methods to convert pixel to lat/lng
-
-                            // Update the selected position to where user tapped
-                            // For simplicity, we'll use the current center + small offset based on tap position
-                            RenderBox box =
-                                context.findRenderObject() as RenderBox;
-                            Offset localOffset = box.globalToLocal(
-                              details.globalPosition,
-                            );
-
-                            // Calculate relative position on the map
-                            double dx =
-                                (localOffset.dx - box.size.width / 2) * 0.00001;
-                            double dy =
-                                (localOffset.dy - box.size.height / 2) *
-                                -0.00001;
-
-                            double newLat = _selectedLatitude + dy;
-                            double newLng = _selectedLongitude + dx;
-
-                            setState(() {
-                              _selectedLatitude = newLat;
-                              _selectedLongitude = newLng;
-                              _latitudeController.text = newLat.toStringAsFixed(
-                                6,
-                              );
-                              _longitudeController.text = newLng
-                                  .toStringAsFixed(6);
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'تم تحديد الموقع: ${newLat.toStringAsFixed(6)}, ${newLng.toStringAsFixed(6)}',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          },
-                          child: FlutterMap(
-                            options: MapOptions(
-                              center: LatLng(
-                                _selectedLatitude,
-                                _selectedLongitude,
-                              ),
-                              zoom: 15.0,
+                        FlutterMap(
+                          mapController: MapController(),
+                          options: MapOptions(
+                            center: LatLng(
+                              _selectedLatitude,
+                              _selectedLongitude,
                             ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: LatLng(
-                                      _selectedLatitude,
-                                      _selectedLongitude,
-                                    ),
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      size: 40,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                            zoom: 15.0,
+                            onTap: (tapPosition, point) {
+                              setState(() {
+                                _selectedLatitude = point.latitude;
+                                _selectedLongitude = point.longitude;
+                                _latitudeController.text = _selectedLatitude
+                                    .toStringAsFixed(6);
+                                _longitudeController.text = _selectedLongitude
+                                    .toStringAsFixed(6);
+                              });
+                            },
                           ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            ),
+
+                            /// Circle for the zone
+                            CircleLayer(
+                              circles: [
+                                CircleMarker(
+                                  point: LatLng(
+                                    _selectedLatitude,
+                                    _selectedLongitude,
+                                  ),
+                                  radius:
+                                      double.tryParse(_radiusController.text) ??
+                                      300,
+                                  useRadiusInMeter: true,
+                                  color:
+                                      _zoneType == 'safe'
+                                          ? Colors.green.withOpacity(0.3)
+                                          : Colors.red.withOpacity(0.3),
+                                  borderColor:
+                                      _zoneType == 'safe'
+                                          ? Colors.green
+                                          : Colors.red,
+                                  borderStrokeWidth: 2,
+                                ),
+                              ],
+                            ),
+
+                            /// Marker at selected point
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(
+                                    _selectedLatitude,
+                                    _selectedLongitude,
+                                  ),
+                                  width: 40,
+                                  height: 40,
+                                  child: Icon(
+                                    Icons.location_pin,
+                                    color:
+                                        _zoneType == 'safe'
+                                            ? Colors.green
+                                            : Colors.red,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         Positioned(
                           top: 10,
                           right: 10,
                           child: ElevatedButton(
                             onPressed: () {
-                              // Simulate getting current location or letting user set a specific location
-                              // In a real implementation, you'd get the tap coordinates properly
                               setState(() {
                                 _latitudeController.text = _selectedLatitude
                                     .toStringAsFixed(6);
                                 _longitudeController.text = _selectedLongitude
                                     .toStringAsFixed(6);
                               });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'الرجاء تحديد الموقع على الخريطة يدويًا',
-                                  ),
-                                  backgroundColor: Colors.blue,
-                                ),
-                              );
                             },
-                            child: const Text('تحديد الموقع'),
+                            child: const Text('تحديث الإحداثيات'),
+                          ),
+                        ),
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: FloatingActionButton.small(
+                            onPressed: getCurrentLocation,
+                            backgroundColor: Colors.white,
+                            child: const Icon(
+                              Icons.my_location,
+                              color: Colors.blue,
+                            ),
+                            tooltip: 'الموقع الحالي',
                           ),
                         ),
                       ],
@@ -861,6 +956,41 @@ class _GeographicalZoneDialogState extends State<_GeographicalZoneDialog> {
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            setState(() {
+                              // Update radius when the text field changes
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Slider for radius control
+                        StatefulBuilder(
+                          builder: (context, setState) {
+                            double currentValue =
+                                double.tryParse(_radiusController.text) ?? 300;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('المسافة: \${currentValue.toInt()} متر'),
+                                Slider(
+                                  min: 50,
+                                  max: 2000,
+                                  divisions: 39,
+                                  value: currentValue,
+                                  label: "\${currentValue.toInt()} متر",
+                                  onChanged: (value) {
+                                    _radiusController.text =
+                                        value.round().toString();
+                                    setState(() {});
+                                    // Update the map view
+                                    if (_isMapSelectionMode) {
+                                      setState(() {});
+                                    }
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
@@ -880,6 +1010,11 @@ class _GeographicalZoneDialogState extends State<_GeographicalZoneDialog> {
                             ),
                           ],
                           onChanged: (value) {
+                            setState(() {
+                              _zoneType = value ?? 'safe';
+                            });
+                          },
+                          onSaved: (value) {
                             setState(() {
                               _zoneType = value ?? 'safe';
                             });
@@ -1021,6 +1156,8 @@ class _GeographicalZoneDialogState extends State<_GeographicalZoneDialog> {
         startTime: _startTime,
         endTime: _endTime,
         isActive: _isActive,
+        notifyOnViolation:
+            true, // Enable notifications when child crosses boundaries
       );
 
       Navigator.pop(context, zone);

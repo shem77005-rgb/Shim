@@ -251,43 +251,6 @@ class _ParentSignupScreenState extends State<ParentSignupScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // زر Google (تصميم فقط)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: navy, width: 1.2),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('الدخول عبر Google (تصميم)'),
-                          ),
-                        );
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              'G',
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text('الدخول عبر Google'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
                   // لديك حساب؟ تسجيل الدخول
                   RichText(
                     text: TextSpan(

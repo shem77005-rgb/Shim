@@ -479,7 +479,7 @@ class GeoRestrictionService {
   }
 
   // Method to get zones for a specific child
-  Future<ApiResponse<List<GeoZone>>> getZonesForChild(String childId) async {
+  Future<ApiResponse<List<GeoZone>>> getZonesForChild(int childId) async {
     try {
       final response = await _apiClient.get(
         '${ApiConstants.geoZones}?child=$childId',

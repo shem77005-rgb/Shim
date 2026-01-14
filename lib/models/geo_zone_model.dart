@@ -9,6 +9,8 @@ class GeoZone {
   final String? startTime; // Time restriction start (HH:MM format)
   final String? endTime; // Time restriction end (HH:MM format)
   final bool isActive; // Whether time restriction is active
+  final bool
+  notifyOnViolation; // Whether to send notifications when child crosses boundaries
   final String? createdAt;
   final String? updatedAt;
 
@@ -23,6 +25,7 @@ class GeoZone {
     this.startTime,
     this.endTime,
     this.isActive = true,
+    this.notifyOnViolation = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -46,6 +49,7 @@ class GeoZone {
       startTime: json['start_time'],
       endTime: json['end_time'],
       isActive: json['is_active'] ?? true,
+      notifyOnViolation: json['notify_on_violation'] ?? true,
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
     );
@@ -61,6 +65,7 @@ class GeoZone {
       'longitude': longitude,
       'radius': radius,
       'zone_type': zoneType,
+      'notify_on_violation': notifyOnViolation,
     };
 
     // Add optional fields only if they have values
@@ -81,6 +86,7 @@ class GeoZone {
       'radius': radius,
       'zone_type': zoneType,
       'is_active': isActive,
+      'notify_on_violation': notifyOnViolation,
     };
 
     // Include optional fields only if they have values

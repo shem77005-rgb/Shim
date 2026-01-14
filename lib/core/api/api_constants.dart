@@ -20,13 +20,16 @@ class ApiConstants {
 
   // Child Endpoints
   static const String childLogin = '/api/child/login/';
+  static const String childrenByParent = '/api/children/';
   static const String childRegister = '/api/children/';
   static const String childUpdate = '/api/children/';
-  static const String emergencyAlert = '/api/emergency/';
+  static const String emergencyAlertTrigger =
+      '/api/v1/emergency/'; // Use: {emergencyAlertTrigger}{child_id}/
+  static const String emergencyAlerts = '/api/emergency-alerts/';
 
   // Notifications Endpoints
   static const String notificationsSend = '/api/notifications/send-to-parent/';
-  static const String notifications = '/api/notifications/';
+  static const String notificationsByUser = '/api/notifications/';
   static const String deleteNotificationById =
       '/api/notifications/'; // Use: {deleteNotificationById}{id}/
   static const String deleteNotificationsByParent =
