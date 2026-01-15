@@ -396,7 +396,7 @@
 //        removeOverlay()
 //        handler.removeCallbacksAndMessages(null)
 //    }
-//}
+//
 
 
 package com.shaimaa.safechild
@@ -605,7 +605,6 @@ class AppBlockerService : Service() {
 
     // ---------------- Actions ----------------
     private fun kickOutAndShowBlock(pkg: String) {
-        // 1) افتح واجهة الحظر
         val i = Intent(this, BlockedActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -618,7 +617,6 @@ class AppBlockerService : Service() {
             Log.e(TAG_MONITOR, "startActivity BlockedActivity failed", e)
         }
 
-        // 2) طيّر الطفل للـ Home (يخرج من التطبيق المحظور)
         goHome()
     }
 
