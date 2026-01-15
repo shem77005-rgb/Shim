@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Text Monitor Service - Communicates with native Android accessibility service
 /// for monitoring text input across the device
@@ -83,6 +84,19 @@ class TextMonitorService {
       print(
         '✅ [TextMonitorService] Child info saved: $childName (parent: $parentId)',
       );
+
+      // Also save to SharedPreferences for backup access
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('backup_auth_token', token);
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await prefs.setString('backup_refresh_token', refreshToken);
+      }
+      await prefs.setString('backup_parent_id', parentId);
+      await prefs.setString('backup_child_id', childId);
+      await prefs.setString('backup_child_name', childName);
+
+      print('✅ [TextMonitorService] Backup tokens saved to SharedPreferences');
+
       return result == true;
     } on PlatformException catch (e) {
       print('❌ [TextMonitorService] Error saving child info: ${e.message}');

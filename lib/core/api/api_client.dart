@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_constants.dart';
 import 'api_response.dart';
@@ -16,7 +17,7 @@ class ApiClient {
   String? _refreshToken;
 
   ApiClient({http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+    : _httpClient = httpClient ?? http.Client();
 
   // ================================================================
   // Token Management (Merged: block-app + main backward compatibility)
@@ -107,7 +108,9 @@ class ApiClient {
       // ignore: avoid_print
       print('🔵 [ApiClient] URL: $uri');
       // ignore: avoid_print
-      print('🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}');
+      print(
+        '🔵 [ApiClient] Headers: ${_getHeaders(includeAuth: requiresAuth)}',
+      );
       // ignore: avoid_print
       print('🔵 [ApiClient] Body: ${body != null ? jsonEncode(body) : "null"}');
       // ignore: avoid_print
@@ -167,9 +170,9 @@ class ApiClient {
         final bodyStr = response.body;
         final bool looksLikeTokenInvalid =
             bodyStr.contains('token_not_valid') ||
-                bodyStr.contains('Given token not valid') ||
-                bodyStr.contains('Token is invalid') ||
-                bodyStr.contains('expired');
+            bodyStr.contains('Given token not valid') ||
+            bodyStr.contains('Token is invalid') ||
+            bodyStr.contains('expired');
 
         if (looksLikeTokenInvalid) {
           // ignore: avoid_print
@@ -177,7 +180,9 @@ class ApiClient {
           final refreshed = await _refreshAccessToken();
           if (refreshed) {
             // ignore: avoid_print
-            print('✅ [ApiClient] Refresh success -> retrying original request...');
+            print(
+              '✅ [ApiClient] Refresh success -> retrying original request...',
+            );
             return _execute<T>(
               method,
               endpoint,
@@ -216,7 +221,31 @@ class ApiClient {
 
   Future<bool> _refreshAccessToken() async {
     try {
-      if (_refreshToken == null || _refreshToken!.trim().isEmpty) {
+      // First check instance variable
+      String? refreshTokenToUse = _refreshToken;
+
+      // If not available in instance variable, try to get from SharedPreferences
+      if (refreshTokenToUse == null || refreshTokenToUse.trim().isEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          refreshTokenToUse = prefs.getString('refresh_token');
+
+          // Also try backup token if main one not found
+          if (refreshTokenToUse == null || refreshTokenToUse.trim().isEmpty) {
+            refreshTokenToUse = prefs.getString('backup_refresh_token');
+          }
+
+          // ignore: avoid_print
+          print(
+            '🔄 [ApiClient] Retrieved refresh token from SharedPreferences: ${refreshTokenToUse != null && refreshTokenToUse.isNotEmpty}',
+          );
+        } catch (e) {
+          // ignore: avoid_print
+          print('⚠️ [ApiClient] Error accessing SharedPreferences: $e');
+        }
+      }
+
+      if (refreshTokenToUse == null || refreshTokenToUse.trim().isEmpty) {
         // ignore: avoid_print
         print('⚠️ [ApiClient] No refresh token available.');
         return false;
@@ -238,7 +267,7 @@ class ApiClient {
               'Content-Type': ApiConstants.contentTypeJson,
               'Accept': ApiConstants.acceptJson,
             },
-            body: jsonEncode({'refresh': _refreshToken}),
+            body: jsonEncode({'refresh': refreshTokenToUse}),
           )
           .timeout(ApiConstants.connectionTimeout);
 
@@ -255,6 +284,10 @@ class ApiClient {
           final newAccess = data['access'].toString();
           if (newAccess.trim().isNotEmpty) {
             _accessToken = newAccess;
+            // Update instance refresh token as well
+            if (data['refresh'] != null) {
+              _refreshToken = data['refresh'].toString();
+            }
             // ignore: avoid_print
             print('✅ [ApiClient] Access token refreshed.');
             return true;
@@ -308,12 +341,7 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
   }) {
-    return _execute<T>(
-      'PUT',
-      endpoint,
-      body: body,
-      requiresAuth: requiresAuth,
-    );
+    return _execute<T>('PUT', endpoint, body: body, requiresAuth: requiresAuth);
   }
 
   /// DELETE
@@ -321,11 +349,7 @@ class ApiClient {
     String endpoint, {
     bool requiresAuth = true,
   }) {
-    return _execute<T>(
-      'DELETE',
-      endpoint,
-      requiresAuth: requiresAuth,
-    );
+    return _execute<T>('DELETE', endpoint, requiresAuth: requiresAuth);
   }
 
   // ================================================================
@@ -346,7 +370,10 @@ class ApiClient {
         final jsonData = jsonDecode(response.body);
         return ApiResponse.success(jsonData as T, statusCode: statusCode);
       } catch (_) {
-        return ApiResponse.error('فشل في تحليل البيانات', statusCode: statusCode);
+        return ApiResponse.error(
+          'فشل في تحليل البيانات',
+          statusCode: statusCode,
+        );
       }
     }
 
@@ -363,7 +390,10 @@ class ApiClient {
     }
 
     if (statusCode == 404) {
-      return ApiResponse.error('المورد غير موجود (404)', statusCode: statusCode);
+      return ApiResponse.error(
+        'المورد غير موجود (404)',
+        statusCode: statusCode,
+      );
     }
 
     // Server errors with best-effort message extraction (block-app behavior)
@@ -412,7 +442,8 @@ class ApiClient {
           );
         }
 
-        final message = jsonData['message'] ??
+        final message =
+            jsonData['message'] ??
             jsonData['detail'] ??
             jsonData['error'] ??
             'حدث خطأ غير معروف';

@@ -482,7 +482,7 @@ class GeoRestrictionService {
   Future<ApiResponse<List<GeoZone>>> getZonesForChild(int childId) async {
     try {
       final response = await _apiClient.get(
-        '${ApiConstants.geoZones}?child=$childId',
+        ApiConstants.geoZonesByChild(childId),
         requiresAuth: true,
       );
 
@@ -502,7 +502,7 @@ class GeoRestrictionService {
           );
           // Retry the request with the new token
           final retryResponse = await _apiClient.get(
-            '${ApiConstants.geoZones}?child=$childId',
+            ApiConstants.geoZonesByChild(childId),
             requiresAuth: true,
           );
 

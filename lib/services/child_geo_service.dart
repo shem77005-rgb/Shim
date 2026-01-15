@@ -21,32 +21,30 @@ class ChildGeoService {
       final position = await _getCurrentLocation();
       if (position == null) return [];
 
-      // Get all zones for the current child
-      final zonesResponse = await _geoService.getZones();
+      // Get zones for the current child only
+      final childId = await _getChildId();
+      if (childId == null) return [];
+
+      final zonesResponse = await _geoService.getZonesForChild(childId);
       if (!zonesResponse.isSuccess || zonesResponse.data == null) {
         return [];
       }
 
       // Check which zones the current location is in
       final currentZones = <GeoZone>[];
-      final childId = await _getChildId();
-
-      if (childId == null) return [];
 
       for (final zone in zonesResponse.data!) {
-        if (zone.child == childId) {
-          final distance = Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            zone.latitude,
-            zone.longitude,
-          );
+        final distance = Geolocator.distanceBetween(
+          position.latitude,
+          position.longitude,
+          zone.latitude,
+          zone.longitude,
+        );
 
-          if (distance <= zone.radius) {
-            // Check if the zone has time restrictions
-            if (_isWithinTimeRestriction(zone)) {
-              currentZones.add(zone);
-            }
+        if (distance <= zone.radius) {
+          // Check if the zone has time restrictions
+          if (_isWithinTimeRestriction(zone)) {
+            currentZones.add(zone);
           }
         }
       }

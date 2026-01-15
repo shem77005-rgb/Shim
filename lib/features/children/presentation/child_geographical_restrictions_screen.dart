@@ -187,12 +187,14 @@ class _ChildGeographicalRestrictionsScreenState
             ),
             const SizedBox(height: 8),
             Text(
-              'المناطق الحالية:',
+              _currentZones.isEmpty
+                  ? 'لم يتم إضافة مناطق جغرافية لهذا الطفل'
+                  : 'المناطق الحالية:',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 4),
             _currentZones.isEmpty
-                ? const Text('❌ خارج جميع المناطق')
+                ? const SizedBox.shrink() // Empty space when no zones
                 : Column(
                   children:
                       _currentZones
@@ -237,26 +239,27 @@ class _ChildGeographicalRestrictionsScreenState
           ],
         ),
 
-        /// Zones
-        CircleLayer(
-          circles:
-              _currentZones
-                  .map(
-                    (zone) => CircleMarker(
-                      point: LatLng(zone.latitude, zone.longitude),
-                      radius: zone.radius.toDouble(),
-                      useRadiusInMeter: true,
-                      color:
-                          zone.zoneType == 'safe'
-                              ? Colors.green.withOpacity(0.3)
-                              : Colors.red.withOpacity(0.3),
-                      borderColor:
-                          zone.zoneType == 'safe' ? Colors.green : Colors.red,
-                      borderStrokeWidth: 2,
-                    ),
-                  )
-                  .toList(),
-        ),
+        /// Zones - only show if there are zones for this child
+        if (_currentZones.isNotEmpty)
+          CircleLayer(
+            circles:
+                _currentZones
+                    .map(
+                      (zone) => CircleMarker(
+                        point: LatLng(zone.latitude, zone.longitude),
+                        radius: zone.radius.toDouble(),
+                        useRadiusInMeter: true,
+                        color:
+                            zone.zoneType == 'safe'
+                                ? Colors.green.withOpacity(0.3)
+                                : Colors.red.withOpacity(0.3),
+                        borderColor:
+                            zone.zoneType == 'safe' ? Colors.green : Colors.red,
+                        borderStrokeWidth: 2,
+                      ),
+                    )
+                    .toList(),
+          ),
       ],
     );
   }
